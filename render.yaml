@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: veilory-api
+    env: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && alembic upgrade head"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: POSTGRES_SERVER
+        fromDatabase:
+          name: veilory-db
+          property: host
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: veilory-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: veilory-db
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: veilory-db
+          property: database
+      - key: SECRET_KEY
+        generateValue: true
+      
+databases:
+  - name: veilory-db
+    databaseName: veilory
+    user: veilory_user
