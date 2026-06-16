@@ -40,39 +40,37 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Navigation Links */}
-        <div className="hidden md:flex items-center gap-8">
-          {isAuthenticated && (
-            <Link
-              href="/dashboard"
-              className={cn(
-                "text-[13px] font-medium transition-colors flex items-center gap-1.5",
-                isLanding
-                  ? "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-                  : pathname === "/dashboard"
+        {/* Navigation Links (Hidden on Landing Page to remove navigation clutter) */}
+        {!isLanding && (
+          <div className="hidden md:flex items-center gap-8">
+            {isAuthenticated && (
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "text-[13px] font-medium transition-colors flex items-center gap-1.5",
+                  pathname === "/dashboard"
                     ? "text-[#1a1a1a]"
                     : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-              )}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              Dashboard
-            </Link>
-          )}
-          <Link
-            href="/create"
-            className={cn(
-              "text-[13px] font-medium transition-colors flex items-center gap-1.5",
-              isLanding
-                ? "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-                : pathname === "/create"
+                )}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                Dashboard
+              </Link>
+            )}
+            <Link
+              href="/create"
+              className={cn(
+                "text-[13px] font-medium transition-colors flex items-center gap-1.5",
+                pathname === "/create"
                   ? "text-[#1a1a1a]"
                   : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-            )}
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            Preserve Stories
-          </Link>
-        </div>
+              )}
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              Preserve Stories
+            </Link>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-4">

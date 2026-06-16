@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ArrowRight, Heart } from "lucide-react";
+import { Search, Heart } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -36,28 +36,7 @@ export default function Home() {
     router.push(`/explore?q=${encodeURIComponent(query)}`);
   };
 
-  const stories = [
-    {
-      excerpt: "When my startup shut down after two years, I sat in my car and cried for an hour. But those two years taught me more about resilience than a decade of comfortable employment ever could.",
-      tag: "startup failure",
-      author: "Someone who rebuilt",
-    },
-    {
-      excerpt: "We didn't have a dramatic breakup. We just slowly drifted into strangers. The quiet letting go was the hardest part \u2014 because there was no villain, just two people growing apart.",
-      tag: "heartbreak",
-      author: "Anonymous",
-    },
-    {
-      excerpt: "I failed my second-year exams and thought my life was over. My friends moved forward while I stood still. But that pause taught me how to study with my ADHD, not against it.",
-      tag: "academic failure",
-      author: "A student who returned",
-    },
-    {
-      excerpt: "I had a $250k salary and woke up every morning with dread. Quitting felt irresponsible. But my sleep, my creativity, my sense of self \u2014 they all came back the moment I walked away.",
-      tag: "career change",
-      author: "Someone who chose differently",
-    },
-  ];
+
 
   const feelings = [
     { label: "I feel lost", emoji: "\u{1F30A}", query: "lost" },
@@ -77,7 +56,7 @@ export default function Home() {
         }
       `}</style>
 
-      <div className="relative w-screen min-h-screen overflow-x-hidden text-[#1a1a1a] selection:bg-amber-100/60"
+      <div className="relative w-screen min-h-screen flex flex-col justify-between overflow-x-hidden text-[#1a1a1a] selection:bg-amber-100/60"
            style={{ marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", marginTop: "-7rem", marginBottom: "-2.5rem" }}>
 
         {/* ═══════════════════════════════════════════════════════
@@ -97,14 +76,14 @@ export default function Home() {
           </video>
         </div>
 
-        {/* Soft white readability overlay above the video (reduced opacity & blur) */}
-        <div className="fixed inset-0 w-screen h-screen bg-white/40 backdrop-blur-[2px] -z-10 pointer-events-none" />
+        {/* Soft white readability overlay above the video (further reduced opacity & blur) */}
+        <div className="fixed inset-0 w-screen h-screen bg-white/30 backdrop-blur-[0.5px] -z-10 pointer-events-none" />
 
 
         {/* ═══════════════════════════════════════════════════════
             HERO — vertically centered, immersive, floating in space
         ═══════════════════════════════════════════════════════ */}
-        <section className="relative flex items-center justify-center min-h-screen px-6 md:px-12">
+        <section className="relative flex-grow flex items-center justify-center px-6 md:px-12 py-12">
           <div className="max-w-3xl mx-auto text-center space-y-10 -mt-12">
 
             {/* Gentle entrance marker */}
@@ -210,131 +189,16 @@ export default function Home() {
             </motion.div>
 
           </div>
-
-
         </section>
-
-
-        {/* ═══════════════════════════════════════════════════════
-            STORIES — journal entries floating on the atmospheric bg
-        ═══════════════════════════════════════════════════════ */}
-        <section className="relative px-6 md:px-12 py-24 md:py-32">
-          <div className="max-w-3xl mx-auto space-y-20">
-
-            <div className="text-center space-y-4">
-              <motion.h2
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1 }}
-                className="text-2xl md:text-3xl font-light text-[#0a0a0a]/90 tracking-tight"
-                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-              >
-                Every struggle leaves a lesson
-              </motion.h2>
-              <p className="text-sm text-[#1a1a1a]/55 font-normal max-w-sm mx-auto leading-relaxed">
-                Real stories from people who chose to preserve their
-                hard-won wisdom so others wouldn&apos;t walk alone.
-              </p>
-            </div>
-
-            {/* Stories as quiet journal entries with generous spacing */}
-            <div className="space-y-6">
-              {stories.map((story, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-60px" }}
-                  transition={{ duration: 0.9, delay: i * 0.08 }}
-                  className="p-8 md:p-10 rounded-3xl bg-white/45 backdrop-blur-sm border border-[#1a1a1a]/6 hover:bg-white/60 hover:border-[#1a1a1a]/12 transition-all duration-700 cursor-pointer"
-                  onClick={() => handleQuickSearch(story.tag)}
-                >
-                  <p
-                    className="text-[15px] md:text-base text-[#1a1a1a]/80 leading-[1.85] font-light"
-                    style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-                  >
-                    &ldquo;{story.excerpt}&rdquo;
-                  </p>
-
-                  <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#1a1a1a]/8">
-                    <span className="text-xs text-[#1a1a1a]/45 font-medium">
-                      &mdash; {story.author}
-                    </span>
-                    <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[#1a1a1a]/35 border border-[#1a1a1a]/10 rounded-full px-3 py-1 bg-white/40">
-                      {story.tag}
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-          </div>
-        </section>
-
-
-        {/* ═══════════════════════════════════════════════════════
-            INVITATION — gentle, human, not marketing
-        ═══════════════════════════════════════════════════════ */}
-        <section className="relative px-6 md:px-12 py-24 md:py-32">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.2 }}
-            className="max-w-xl mx-auto text-center space-y-8"
-          >
-
-
-            <h3
-              className="text-xl md:text-2xl font-light text-[#0a0a0a]/90 tracking-tight leading-relaxed"
-              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-            >
-              Your chapter matters too.
-            </h3>
-
-            <p className="text-sm text-[#1a1a1a]/55 font-normal max-w-sm mx-auto leading-[1.8]">
-              The failure you&apos;re carrying, the lesson you learned the hard way,
-              the growth that came from pain &mdash; someone out there needs to hear it.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link
-                href="/create"
-                className="px-7 py-3 rounded-full bg-[#1a1a1a]/85 text-white text-sm font-medium hover:bg-[#1a1a1a] transition-colors cursor-pointer"
-              >
-                Preserve your experience
-              </Link>
-              <Link
-                href="/explore"
-                className="px-7 py-3 rounded-full border border-[#1a1a1a]/15 text-sm text-[#1a1a1a]/65 font-medium hover:border-[#1a1a1a]/25 hover:text-[#1a1a1a]/85 transition-all cursor-pointer flex items-center gap-2"
-              >
-                Explore the library <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="pt-6">
-              <p className="text-[11px] text-[#1a1a1a]/40 font-medium tracking-wide">
-                12,000+ experiences preserved &middot; Completely anonymous &middot; Always free
-              </p>
-            </div>
-          </motion.div>
-        </section>
-
 
         {/* ═══════════════════════════════════════════════════════
             FOOTER — minimal, blends into the atmosphere
         ═══════════════════════════════════════════════════════ */}
-        <footer className="border-t border-[#1a1a1a]/5 py-10 px-6 md:px-12">
-          <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-[#1a1a1a]/40 font-medium">
+        <footer className="border-t border-[#1a1a1a]/5 py-8 px-6 md:px-12">
+          <div className="max-w-3xl mx-auto flex items-center justify-center text-[11px] text-[#1a1a1a]/35 font-medium">
             <div className="flex items-center gap-2">
               <Heart className="w-3 h-3 text-rose-300/60" />
-              <span>Veilory &mdash; Preserving the emotional library of humanity.</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <Link href="/explore" className="hover:text-[#1a1a1a]/65 transition-colors">Explore</Link>
-              <Link href="/create" className="hover:text-[#1a1a1a]/65 transition-colors">Preserve</Link>
-              <Link href="/auth/signup" className="hover:text-[#1a1a1a]/65 transition-colors">Join</Link>
+              <span>Veilory &middot; {new Date().getFullYear()}</span>
             </div>
           </div>
         </footer>
