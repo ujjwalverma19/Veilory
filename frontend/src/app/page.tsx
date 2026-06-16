@@ -1,352 +1,305 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Search, Quote, Sparkles, Heart, Ghost, Globe, Lock, BookOpen } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/Button";
-import { EmotionTag } from "@/components/ui/EmotionTag";
-import { TRENDING_EMOTIONS } from "@/lib/mockData";
+import { Search, ArrowRight, Heart } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const searchPlaceholders = [
+  const placeholders = [
+    "I feel lost in my career",
     "I failed my exams",
-    "Heartbreak",
-    "Career confusion",
-    "Startup failure",
-    "Burnout"
+    "I'm going through a breakup",
+    "My startup didn't work out",
+    "I feel burned out",
+    "I lost someone close to me",
   ];
 
-  // Rotate placeholders every 3 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % searchPlaceholders.length);
-    }, 3000);
+      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+    }, 3500);
     return () => clearInterval(interval);
   }, []);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const queryToSubmit = searchQuery.trim() || searchPlaceholders[placeholderIndex];
-    router.push(`/explore?q=${encodeURIComponent(queryToSubmit)}`);
+    const q = searchQuery.trim() || placeholders[placeholderIndex];
+    router.push(`/explore?q=${encodeURIComponent(q)}`);
   };
 
-  const handleQuickSearch = (queryText: string) => {
-    router.push(`/explore?q=${encodeURIComponent(queryText)}`);
+  const handleQuickSearch = (query: string) => {
+    router.push(`/explore?q=${encodeURIComponent(query)}`);
   };
+
+  const stories = [
+    {
+      excerpt: "When my startup shut down after two years, I sat in my car and cried for an hour. But those two years taught me more about resilience than a decade of comfortable employment ever could.",
+      tag: "startup failure",
+      author: "Someone who rebuilt",
+    },
+    {
+      excerpt: "We didn't have a dramatic breakup. We just slowly drifted into strangers. The quiet letting go was the hardest part — because there was no villain, just two people growing apart.",
+      tag: "heartbreak",
+      author: "Anonymous",
+    },
+    {
+      excerpt: "I failed my second-year exams and thought my life was over. My friends moved forward while I stood still. But that pause taught me how to study with my ADHD, not against it.",
+      tag: "academic failure",
+      author: "A student who returned",
+    },
+    {
+      excerpt: "I had a $250k salary and woke up every morning with dread. Quitting felt irresponsible. But my sleep, my creativity, my sense of self — they all came back the moment I walked away.",
+      tag: "career change",
+      author: "Someone who chose differently",
+    },
+  ];
+
+  const feelings = [
+    { label: "I feel lost", emoji: "\u{1F30A}", query: "lost" },
+    { label: "I failed at something", emoji: "\u{1F331}", query: "failure" },
+    { label: "My heart is broken", emoji: "\u{1F54A}\u{FE0F}", query: "heartbreak" },
+    { label: "I'm burning out", emoji: "\u{1F305}", query: "burnout" },
+    { label: "I need a fresh start", emoji: "\u{1F33F}", query: "growth" },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#08080a] text-foreground font-sans selection:bg-white/10 selection:text-white antialiased">
-      {/* Subtle, soft lighting backdrops - No neon glowing gradients, only quiet luxury reflections */}
-      <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#0b0f19]/25 to-transparent pointer-events-none -z-10" />
-      <div className="absolute top-[20%] right-[10%] w-[350px] h-[350px] bg-indigo-900/5 rounded-full blur-[120px] pointer-events-none -z-10" />
+    <div className="min-h-screen bg-[#faf8f5] text-[#1a1a1a] selection:bg-amber-100 overflow-x-hidden -mx-4 md:-mx-8 -mt-28 -mb-10">
 
-      {/* HERO SPLIT-SCREEN LAYOUT */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 items-center pt-8 md:pt-16 pb-24">
-        
-        {/* LEFT COLUMN: Editorial copy and integrated search (5 cols or 6 cols) */}
-        <div className="lg:col-span-6 space-y-10 pr-0 lg:pr-8 text-left">
-          
-          {/* Tagline / Indicator */}
-          <div className="inline-flex items-center gap-2 text-xs font-semibold text-foreground/45 tracking-widest uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/60" />
-            <span>The Library of Human Experience</span>
-          </div>
+      {/* Atmospheric background — soft warm light */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-amber-100/40 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-rose-100/30 blur-[100px]" />
+        <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] rounded-full bg-sky-100/20 blur-[100px]" />
+      </div>
 
-          {/* Main Headline - Set in Georgia / Serif font */}
-          <h1 className="text-4xl md:text-6xl font-normal leading-[1.15] text-white tracking-tight font-serif">
-            What are you <br className="hidden md:inline" />
-            going through today?
-          </h1>
+      {/* HERO SECTION */}
+      <section className="relative pt-36 md:pt-48 pb-24 md:pb-32 px-6 md:px-12">
+        <div className="max-w-3xl mx-auto text-center space-y-10">
 
-          {/* Supporting Description */}
-          <p className="text-sm md:text-base text-foreground/60 max-w-lg leading-relaxed font-normal">
-            Explore experiences from people who have faced similar moments in life. A quiet, anonymous sanctuary built to preserve and search human lessons, mistakes, failures, and growth.
-          </p>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2, delay: 0.2 }}
+            className="flex items-center justify-center gap-2 text-[11px] font-medium tracking-[0.2em] uppercase text-[#1a1a1a]/40"
+          >
+            <Heart className="w-3 h-3 text-rose-300" />
+            <span>A sanctuary for human experiences</span>
+          </motion.div>
 
-          {/* Integrated Premium Search Experience */}
-          <form onSubmit={handleSearchSubmit} className="max-w-md relative group">
-            <div className="relative border border-white/10 rounded-2xl flex items-center p-1.5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/15 transition-all duration-300">
-              <Search className="w-4 h-4 text-foreground/40 ml-4 shrink-0" />
-              
-              <div className="relative w-full h-10 flex items-center">
-                <input 
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
+            className="text-[2.5rem] md:text-[4rem] lg:text-[4.5rem] font-light leading-[1.1] tracking-[-0.02em] text-[#1a1a1a]"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            Someone has been{" "}
+            <br className="hidden sm:inline" />
+            where you are.
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.7, ease: "easeOut" }}
+            className="text-base md:text-lg text-[#1a1a1a]/55 max-w-xl mx-auto leading-relaxed font-light"
+          >
+            Explore real experiences from people who faced similar moments
+            and discovered their way forward.
+          </motion.p>
+
+          {/* Search bar */}
+          <motion.form
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.9, ease: "easeOut" }}
+            onSubmit={handleSearch}
+            className="max-w-lg mx-auto"
+          >
+            <div className="relative border border-[#1a1a1a]/10 rounded-2xl bg-white/60 backdrop-blur-sm hover:border-[#1a1a1a]/20 focus-within:border-[#1a1a1a]/25 focus-within:bg-white/80 transition-all duration-500 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1a1a1a]/30" />
+
+              <div className="relative">
+                <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none py-2 px-3 outline-none text-foreground text-sm font-medium z-10"
+                  className="w-full bg-transparent pl-12 pr-24 py-4.5 outline-none text-[15px] text-[#1a1a1a] font-normal placeholder:text-transparent"
+                  placeholder="Search..."
                 />
-                
-                {/* Rotating search placeholder when input is empty */}
+
                 {!searchQuery && (
-                  <div className="absolute left-3 pointer-events-none text-foreground/30 text-sm font-medium overflow-hidden h-5 w-full">
+                  <div className="absolute top-1/2 -translate-y-1/2 left-12 pointer-events-none overflow-hidden h-5">
                     <AnimatePresence mode="wait">
                       <motion.span
                         key={placeholderIndex}
-                        initial={{ opacity: 0, y: 15 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -15 }}
-                        transition={{ duration: 0.4 }}
-                        className="absolute block"
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="absolute text-[15px] text-[#1a1a1a]/30 font-normal whitespace-nowrap"
                       >
-                        {searchPlaceholders[placeholderIndex]}
+                        {placeholders[placeholderIndex]}
                       </motion.span>
                     </AnimatePresence>
                   </div>
                 )}
               </div>
 
-              <Button 
+              <button
                 type="submit"
-                variant="primary"
-                size="sm"
-                className="shrink-0 rounded-xl px-5 text-xs py-2 bg-white text-black hover:bg-white/90"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 rounded-xl bg-[#1a1a1a] text-white text-xs font-medium hover:bg-[#2d2d2d] transition-colors cursor-pointer"
               >
                 Search
-              </Button>
+              </button>
             </div>
-          </form>
+          </motion.form>
 
-          {/* Social Proof & Primary CTA Action */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pt-4 border-t border-white/5">
-            <Button
-              size="md"
-              variant="secondary"
-              className="rounded-xl bg-white/[0.03] border-white/10 hover:bg-white/[0.08]"
-              onClick={() => router.push("/explore")}
-            >
-              Explore the Registry
-            </Button>
-            <div className="text-left">
-              <div className="text-xs font-bold text-foreground">12,000+ Chapters</div>
-              <div className="text-[10px] text-foreground/40 mt-0.5 uppercase tracking-wider font-semibold">Of shared wisdom preserved</div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* RIGHT COLUMN: Layered Editorial Collage of Real Excerpts (6 cols) */}
-        <div className="lg:col-span-6 relative h-[420px] md:h-[480px] w-full flex items-center justify-center pointer-events-none mt-10 lg:mt-0 select-none">
-          
-          {/* Card 1: Experience Excerpt (Center) */}
-          <motion.div
-            initial={{ opacity: 0, y: 30, rotate: -2 }}
-            animate={{ opacity: 1, y: 0, rotate: -3 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="absolute z-20 w-[290px] md:w-[340px] p-6 rounded-2xl bg-[#0e0f14] border border-white/10 shadow-2xl space-y-4"
-          >
-            <div className="flex items-center justify-between text-[10px] text-foreground/45 font-semibold">
-              <span className="flex items-center gap-1"><Globe className="w-3 h-3 text-emerald-500/80" /> Public Entry</span>
-              <span>Apr 2026</span>
-            </div>
-            <Quote className="w-6 h-6 text-indigo-500/20" />
-            <h4 className="text-sm font-bold text-white font-serif leading-snug">
-              My startup failed after 2 years of building
-            </h4>
-            <p className="text-xs text-foreground/60 leading-relaxed">
-              "...We spent too much time perfecting code and not enough talking to users. The day we shut down, I sat in my car and cried. But looking back, I learned more about sales and resilience in those 2 years than..."
-            </p>
-            <div className="flex items-center justify-between pt-3 border-t border-white/5">
-              <span className="text-[10px] text-foreground/45 font-medium">Marc Andreessen Clone</span>
-              <span className="text-[10px] font-bold text-indigo-400">#startup</span>
-            </div>
-          </motion.div>
-
-          {/* Card 2: Emotional Category Snippet (Top-Left) */}
-          <motion.div
-            initial={{ opacity: 0, x: -30, rotate: 6 }}
-            animate={{ opacity: 1, x: 0, rotate: 5 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="absolute z-10 left-4 md:left-12 top-4 w-[200px] md:w-[220px] p-5 rounded-2xl bg-[#0e0f14]/80 border border-white/5 shadow-xl space-y-2.5 backdrop-blur-sm"
-            style={{ y: -20 }}
-          >
-            <div className="text-[9px] uppercase font-bold tracking-widest text-rose-400/80 bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/10 w-fit">
-              #heartbreak
-            </div>
-            <p className="text-xs text-foreground/75 leading-relaxed font-serif">
-              "Grieving a relationship that just drifted away. Deciding to separate was harder than a fight, because there was no villain."
-            </p>
-            <p className="text-[9px] text-foreground/40 italic">— Anonymous Story</p>
-          </motion.div>
-
-          {/* Card 3: Wisdom Snippet (Bottom-Right) */}
-          <motion.div
-            initial={{ opacity: 0, x: 30, rotate: -8 }}
-            animate={{ opacity: 1, x: 0, rotate: -6 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="absolute z-10 right-4 md:right-8 bottom-6 w-[210px] md:w-[230px] p-5 rounded-2xl bg-[#0e0f14]/80 border border-white/5 shadow-xl space-y-3 backdrop-blur-sm"
-          >
-            <div className="text-[9px] uppercase font-bold tracking-widest text-indigo-400/80 bg-indigo-500/5 px-2 py-0.5 rounded border border-indigo-500/10 w-fit">
-              #lessons
-            </div>
-            <h5 className="text-xs font-bold text-white">Temporary Setbacks</h5>
-            <p className="text-[11px] text-foreground/60 leading-relaxed">
-              "Failing an exam is a localized metric of study strategy, not a global metric of intellectual capacity."
-            </p>
-            <div className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-wider flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-emerald-400" /> Wisdom Match
-            </div>
-          </motion.div>
-
-        </div>
-
-      </section>
-
-      {/* BOTTOM SECTION: HORIZONTAL SCROLLING FEED */}
-      <section className="space-y-8 border-t border-white/5 pt-16 pb-24">
-        
-        {/* Section Title */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div className="space-y-2">
-            <h2 className="text-xl md:text-2xl font-bold tracking-tight font-serif text-white">
-              Explore the archives
-            </h2>
-            <p className="text-xs text-foreground/45 font-medium">
-              Browse by emotional category or discover trending previews from our digital preservation files.
-            </p>
-          </div>
-          
-          <Link 
-            href="/explore" 
-            className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1.5 self-start md:self-end cursor-pointer"
-          >
-            Open Full Library <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* Horizontal scroll wrapper */}
-        <div className="relative w-full">
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#08080a] to-transparent pointer-events-none z-10 hidden md:block" />
-          
-          <div className="flex gap-6 overflow-x-auto pb-6 pt-2 scrollbar-none snap-x snap-mandatory scroll-smooth -mx-4 px-4 md:-mx-0 md:px-0">
-            
-            {/* Category 1: Lost */}
-            <div 
-              onClick={() => handleQuickSearch("lost")}
-              className="snap-start shrink-0 w-[240px] p-6 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all duration-300 cursor-pointer flex flex-col justify-between h-44"
-            >
-              <div>
-                <span className="text-xs font-bold text-blue-400 uppercase tracking-widest bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/10 w-fit block">#lost</span>
-                <h4 className="text-base font-bold text-white font-serif mt-4 leading-snug">Career Confusion</h4>
-                <p className="text-xs text-foreground/50 mt-1 leading-relaxed line-clamp-2">
-                  Find stories of career pivots, FAANG departures, and finding purpose.
-                </p>
-              </div>
-              <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">42 Chapters preserved</span>
-            </div>
-
-            {/* Category 2: Failure */}
-            <div 
-              onClick={() => handleQuickSearch("failure")}
-              className="snap-start shrink-0 w-[240px] p-6 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all duration-300 cursor-pointer flex flex-col justify-between h-44"
-            >
-              <div>
-                <span className="text-xs font-bold text-purple-400 uppercase tracking-widest bg-purple-500/5 px-2 py-0.5 rounded border border-purple-500/10 w-fit block">#failure</span>
-                <h4 className="text-base font-bold text-white font-serif mt-4 leading-snug">Startup Lessons</h4>
-                <p className="text-xs text-foreground/50 mt-1 leading-relaxed line-clamp-2">
-                  Read post-mortems of failed projects and lessons learned the hard way.
-                </p>
-              </div>
-              <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">31 Chapters preserved</span>
-            </div>
-
-            {/* Category 3: Heartbreak */}
-            <div 
-              onClick={() => handleQuickSearch("heartbreak")}
-              className="snap-start shrink-0 w-[240px] p-6 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all duration-300 cursor-pointer flex flex-col justify-between h-44"
-            >
-              <div>
-                <span className="text-xs font-bold text-rose-400 uppercase tracking-widest bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/10 w-fit block">#heartbreak</span>
-                <h4 className="text-base font-bold text-white font-serif mt-4 leading-snug">Heartbreak Recovery</h4>
-                <p className="text-xs text-foreground/50 mt-1 leading-relaxed line-clamp-2">
-                  Stories of separation, loss, drifting relationships, and self healing.
-                </p>
-              </div>
-              <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">28 Chapters preserved</span>
-            </div>
-
-            {/* Category 4: Burnout */}
-            <div 
-              onClick={() => handleQuickSearch("burnout")}
-              className="snap-start shrink-0 w-[240px] p-6 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all duration-300 cursor-pointer flex flex-col justify-between h-44"
-            >
-              <div>
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-widest bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10 w-fit block">#burnout</span>
-                <h4 className="text-base font-bold text-white font-serif mt-4 leading-snug">Burnout Recovery</h4>
-                <p className="text-xs text-foreground/50 mt-1 leading-relaxed line-clamp-2">
-                  Reclaiming boundaries, escaping toxic corporate workloads, and mental recovery.
-                </p>
-              </div>
-              <span className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider">25 Chapters preserved</span>
-            </div>
-
-            {/* Story Preview Card 1 */}
-            <Link 
-              href="/experiences/exp-3"
-              className="snap-start shrink-0 w-[300px] p-6 rounded-2xl bg-[#0e0f14] border border-white/5 hover:border-white/10 transition-all duration-300 flex flex-col justify-between h-44"
-            >
-              <div>
-                <div className="flex items-center justify-between text-[9px] text-foreground/40 font-semibold">
-                  <span>Sarah Chen</span>
-                  <span>Mar 2026</span>
-                </div>
-                <h4 className="text-sm font-bold text-white font-serif mt-3 leading-snug line-clamp-2">
-                  Left a high-paying FAANG job because I hated coding
-                </h4>
-                <p className="text-xs text-foreground/50 mt-1.5 leading-relaxed line-clamp-2">
-                  "On paper, I had it all. $250k salary, great perks, working on a famous team. But every single morning, I woke up with dread..."
-                </p>
-              </div>
-              <div className="text-[9px] font-bold text-indigo-400">#burnout #career</div>
-            </Link>
-
-            {/* Story Preview Card 2 */}
-            <Link 
-              href="/experiences/exp-2"
-              className="snap-start shrink-0 w-[300px] p-6 rounded-2xl bg-[#0e0f14] border border-white/5 hover:border-white/10 transition-all duration-300 flex flex-col justify-between h-44"
-            >
-              <div>
-                <div className="flex items-center justify-between text-[9px] text-foreground/40 font-semibold">
-                  <span>A. Student</span>
-                  <span>May 2026</span>
-                </div>
-                <h4 className="text-sm font-bold text-white font-serif mt-3 leading-snug line-clamp-2">
-                  I failed my university exams and thought my life was over
-                </h4>
-                <p className="text-xs text-foreground/50 mt-1.5 leading-relaxed line-clamp-2">
-                  "I failed my second-year algorithms and systems exams. I was placed on academic probation. I saw my friends moving forward..."
-                </p>
-              </div>
-              <div className="text-[9px] font-bold text-purple-400">#failure #academic</div>
-            </Link>
-
-          </div>
         </div>
       </section>
 
-      {/* WHY PRESERVE - Storytelling Trust Banner */}
-      <section className="max-w-4xl mx-auto text-center py-16 border-t border-white/5">
-        <div className="space-y-6 max-w-2xl mx-auto">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-400">A Preservation Sanctuary</h3>
-          <h2 className="text-2xl md:text-3xl font-normal tracking-tight font-serif text-white leading-snug">
-            We are losing the hard-won lessons of everyday lives to highlight reels.
-          </h2>
-          <p className="text-xs md:text-sm text-foreground/50 leading-relaxed font-normal">
-            Veilory is designed to capture the wisdom found during struggles, errors, and pivots. By preserving your experiences, you allow others in similar distress to discover a guiding light.
+      {/* FEELINGS ROW */}
+      <section className="px-6 md:px-12 pb-24 md:pb-32">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 1.2 }}
+          className="max-w-3xl mx-auto"
+        >
+          <p className="text-center text-[11px] font-medium tracking-[0.15em] uppercase text-[#1a1a1a]/35 mb-8">
+            What are you going through?
           </p>
-          <div className="pt-4">
-            <Link
-              href="/auth/signup"
-              className="text-xs font-bold px-6 py-3 rounded-full bg-white text-black hover:bg-white/90 transition-colors inline-block cursor-pointer"
+
+          <div className="flex flex-wrap justify-center gap-3">
+            {feelings.map((feeling) => (
+              <button
+                key={feeling.query}
+                onClick={() => handleQuickSearch(feeling.query)}
+                className="px-5 py-2.5 rounded-full border border-[#1a1a1a]/8 bg-white/50 backdrop-blur-sm text-sm text-[#1a1a1a]/65 font-normal hover:bg-white/80 hover:border-[#1a1a1a]/15 hover:text-[#1a1a1a]/85 transition-all duration-300 cursor-pointer"
+              >
+                <span className="mr-2">{feeling.emoji}</span>
+                {feeling.label}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* STORIES */}
+      <section className="px-6 md:px-12 pb-24 md:pb-32">
+        <div className="max-w-4xl mx-auto">
+
+          <div className="text-center mb-16 space-y-3">
+            <h2
+              className="text-2xl md:text-3xl font-light text-[#1a1a1a] tracking-tight"
+              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
-              Create Your Sanctuary Journal
+              Every struggle leaves a lesson
+            </h2>
+            <p className="text-sm text-[#1a1a1a]/45 font-normal max-w-md mx-auto leading-relaxed">
+              These are real stories from people who chose to preserve their
+              hard-won wisdom so others wouldn&apos;t walk alone.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#1a1a1a]/5 rounded-2xl overflow-hidden">
+            {stories.map((story, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.8, delay: i * 0.1 }}
+                className="bg-[#faf8f5] p-8 md:p-10 space-y-5 hover:bg-white/60 transition-colors duration-500 cursor-pointer"
+                onClick={() => handleQuickSearch(story.tag)}
+              >
+                <p
+                  className="text-[15px] md:text-base text-[#1a1a1a]/75 leading-[1.8] font-light"
+                  style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                >
+                  &ldquo;{story.excerpt}&rdquo;
+                </p>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-xs text-[#1a1a1a]/35 font-medium">
+                    &mdash; {story.author}
+                  </span>
+                  <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[#1a1a1a]/25 border border-[#1a1a1a]/8 rounded-full px-3 py-1">
+                    {story.tag}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* GENTLE CTA */}
+      <section className="px-6 md:px-12 pb-24 md:pb-32">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1 }}
+          className="max-w-2xl mx-auto text-center space-y-8"
+        >
+          <div className="w-px h-16 bg-[#1a1a1a]/10 mx-auto" />
+
+          <h3
+            className="text-xl md:text-2xl font-light text-[#1a1a1a] tracking-tight leading-relaxed"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            Your chapter matters too.
+          </h3>
+
+          <p className="text-sm text-[#1a1a1a]/45 font-normal max-w-sm mx-auto leading-relaxed">
+            The failure you&apos;re carrying, the lesson you learned the hard way,
+            the growth that came from pain &mdash; someone out there needs to hear it.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <Link
+              href="/create"
+              className="px-7 py-3 rounded-full bg-[#1a1a1a] text-white text-sm font-medium hover:bg-[#2d2d2d] transition-colors cursor-pointer"
+            >
+              Preserve your experience
             </Link>
+            <Link
+              href="/explore"
+              className="px-7 py-3 rounded-full border border-[#1a1a1a]/12 text-sm text-[#1a1a1a]/60 font-medium hover:border-[#1a1a1a]/25 hover:text-[#1a1a1a]/80 transition-all cursor-pointer flex items-center gap-2"
+            >
+              Explore the library <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="pt-8">
+            <p className="text-[11px] text-[#1a1a1a]/30 font-medium tracking-wide">
+              12,000+ experiences preserved &middot; Completely anonymous &middot; Always free
+            </p>
+          </div>
+
+        </motion.div>
+      </section>
+
+      {/* FOOTER */}
+      <section className="border-t border-[#1a1a1a]/5 py-12 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-[#1a1a1a]/30 font-medium">
+          <div className="flex items-center gap-2">
+            <Heart className="w-3 h-3 text-rose-300" />
+            <span>Veilory &mdash; Preserving the emotional library of humanity.</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/explore" className="hover:text-[#1a1a1a]/55 transition-colors">Explore</Link>
+            <Link href="/create" className="hover:text-[#1a1a1a]/55 transition-colors">Preserve</Link>
+            <Link href="/auth/signup" className="hover:text-[#1a1a1a]/55 transition-colors">Join</Link>
           </div>
         </div>
       </section>
