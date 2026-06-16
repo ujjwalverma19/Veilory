@@ -42,52 +42,36 @@ export function Navbar() {
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center gap-8">
+          {isAuthenticated && (
+            <Link
+              href="/dashboard"
+              className={cn(
+                "text-[13px] font-medium transition-colors flex items-center gap-1.5",
+                isLanding
+                  ? "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
+                  : pathname === "/dashboard"
+                    ? "text-[#1a1a1a]"
+                    : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
+              )}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              Dashboard
+            </Link>
+          )}
           <Link
-            href="/explore"
+            href="/create"
             className={cn(
               "text-[13px] font-medium transition-colors flex items-center gap-1.5",
               isLanding
                 ? "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-                : pathname === "/explore"
+                : pathname === "/create"
                   ? "text-[#1a1a1a]"
                   : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
             )}
           >
-            <Search className="w-3.5 h-3.5" />
-            Explore
+            <Edit3 className="w-3.5 h-3.5" />
+            Preserve Stories
           </Link>
-          {isAuthenticated && (
-            <>
-              <Link
-                href="/dashboard"
-                className={cn(
-                  "text-[13px] font-medium transition-colors flex items-center gap-1.5",
-                  isLanding
-                    ? "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-                    : pathname === "/dashboard"
-                      ? "text-[#1a1a1a]"
-                      : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-                )}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                Dashboard
-              </Link>
-              <Link
-                href="/create"
-                className={cn(
-                  "text-[13px] font-medium transition-colors flex items-center gap-1.5",
-                  isLanding
-                    ? "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-                    : pathname === "/create"
-                      ? "text-[#1a1a1a]"
-                      : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
-                )}
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                Preserve
-              </Link>
-            </>
-          )}
         </div>
 
         {/* Actions */}

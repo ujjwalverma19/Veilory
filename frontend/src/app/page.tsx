@@ -12,12 +12,11 @@ export default function Home() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   const placeholders = [
-    "I feel lost in my career",
     "I failed my exams",
-    "I'm going through a breakup",
-    "My startup didn't work out",
-    "I feel burned out",
-    "I lost someone close to me",
+    "My startup failed",
+    "I feel lost",
+    "My heart is broken",
+    "I need a fresh start",
   ];
 
   useEffect(() => {
@@ -98,22 +97,22 @@ export default function Home() {
           </video>
         </div>
 
-        {/* Soft white readability overlay above the video */}
-        <div className="fixed inset-0 w-screen h-screen bg-white/70 backdrop-blur-[6px] -z-10 pointer-events-none" />
+        {/* Soft white readability overlay above the video (reduced opacity & blur) */}
+        <div className="fixed inset-0 w-screen h-screen bg-white/40 backdrop-blur-[2px] -z-10 pointer-events-none" />
 
 
         {/* ═══════════════════════════════════════════════════════
             HERO — vertically centered, immersive, floating in space
         ═══════════════════════════════════════════════════════ */}
         <section className="relative flex items-center justify-center min-h-screen px-6 md:px-12">
-          <div className="max-w-2xl mx-auto text-center space-y-10 -mt-12">
+          <div className="max-w-3xl mx-auto text-center space-y-10 -mt-12">
 
             {/* Gentle entrance marker */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1.5, delay: 0.3 }}
-              className="flex items-center justify-center gap-2 text-[11px] font-medium tracking-[0.2em] uppercase text-[#1a1a1a]/35"
+              className="flex items-center justify-center gap-2 text-[11px] font-medium tracking-[0.2em] uppercase text-[#1a1a1a]/45"
               style={{ animation: "gentle-breathe 6s ease-in-out infinite" }}
             >
               <Heart className="w-3 h-3 text-rose-300/80" />
@@ -125,7 +124,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2, delay: 0.5, ease: "easeOut" }}
-              className="text-[2.5rem] md:text-[3.5rem] lg:text-[4.2rem] font-light leading-[1.12] tracking-[-0.025em] text-[#1a1a1a]/90"
+              className="text-[2.5rem] md:text-[3.5rem] lg:text-[4.2rem] font-light leading-[1.12] tracking-[-0.025em] text-[#0a0a0a]"
               style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               Someone has been{" "}
@@ -138,10 +137,10 @@ export default function Home() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
-              className="text-[15px] md:text-base text-[#1a1a1a]/50 max-w-md mx-auto leading-[1.8] font-light"
+              className="text-[15px] md:text-base text-[#1a1a1a]/65 max-w-xl mx-auto leading-[1.8] font-light"
             >
-              Explore real experiences from people who faced
-              similar moments and discovered their way forward.
+              Millions of people have faced failure, heartbreak, uncertainty, and change.
+              Their stories might help you find your next step.
             </motion.p>
 
             {/* Search */}
@@ -152,8 +151,8 @@ export default function Home() {
               onSubmit={handleSearch}
               className="max-w-md mx-auto"
             >
-              <div className="relative border border-[#1a1a1a]/8 rounded-2xl bg-white/50 backdrop-blur-sm hover:bg-white/65 focus-within:bg-white/75 focus-within:border-[#1a1a1a]/15 transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1a1a1a]/25" />
+              <div className="relative border border-[#1a1a1a]/12 rounded-2xl bg-white/55 backdrop-blur-sm hover:bg-white/70 focus-within:bg-white/80 focus-within:border-[#1a1a1a]/20 transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1a1a1a]/40" />
 
                 <div className="relative">
                   <input
@@ -173,7 +172,7 @@ export default function Home() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -12 }}
                           transition={{ duration: 0.4, ease: "easeOut" }}
-                          className="absolute text-[15px] text-[#1a1a1a]/25 font-normal whitespace-nowrap"
+                          className="absolute text-[15px] text-[#1a1a1a]/40 font-normal whitespace-nowrap"
                         >
                           {placeholders[placeholderIndex]}
                         </motion.span>
@@ -202,9 +201,9 @@ export default function Home() {
                 <button
                   key={feeling.query}
                   onClick={() => handleQuickSearch(feeling.query)}
-                  className="px-4 py-2 rounded-full border border-[#1a1a1a]/6 bg-white/35 backdrop-blur-sm text-[13px] text-[#1a1a1a]/50 font-normal hover:bg-white/60 hover:border-[#1a1a1a]/12 hover:text-[#1a1a1a]/70 transition-all duration-400 cursor-pointer"
+                  className="px-4 py-2 rounded-full border border-[#1a1a1a]/10 bg-white/45 backdrop-blur-sm text-[13px] text-[#1a1a1a]/65 font-normal hover:bg-white/70 hover:border-[#1a1a1a]/18 hover:text-[#1a1a1a]/85 transition-all duration-400 cursor-pointer"
                 >
-                  <span className="mr-1.5 opacity-70">{feeling.emoji}</span>
+                  <span className="mr-1.5 opacity-80">{feeling.emoji}</span>
                   {feeling.label}
                 </button>
               ))}
@@ -228,12 +227,12 @@ export default function Home() {
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 1 }}
-                className="text-2xl md:text-3xl font-light text-[#1a1a1a]/85 tracking-tight"
+                className="text-2xl md:text-3xl font-light text-[#0a0a0a]/90 tracking-tight"
                 style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
               >
                 Every struggle leaves a lesson
               </motion.h2>
-              <p className="text-sm text-[#1a1a1a]/40 font-normal max-w-sm mx-auto leading-relaxed">
+              <p className="text-sm text-[#1a1a1a]/55 font-normal max-w-sm mx-auto leading-relaxed">
                 Real stories from people who chose to preserve their
                 hard-won wisdom so others wouldn&apos;t walk alone.
               </p>
@@ -248,21 +247,21 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.9, delay: i * 0.08 }}
-                  className="p-8 md:p-10 rounded-3xl bg-white/35 backdrop-blur-sm border border-[#1a1a1a]/4 hover:bg-white/50 hover:border-[#1a1a1a]/8 transition-all duration-700 cursor-pointer"
+                  className="p-8 md:p-10 rounded-3xl bg-white/45 backdrop-blur-sm border border-[#1a1a1a]/6 hover:bg-white/60 hover:border-[#1a1a1a]/12 transition-all duration-700 cursor-pointer"
                   onClick={() => handleQuickSearch(story.tag)}
                 >
                   <p
-                    className="text-[15px] md:text-base text-[#1a1a1a]/70 leading-[1.85] font-light"
+                    className="text-[15px] md:text-base text-[#1a1a1a]/80 leading-[1.85] font-light"
                     style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
                   >
                     &ldquo;{story.excerpt}&rdquo;
                   </p>
 
-                  <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#1a1a1a]/5">
-                    <span className="text-xs text-[#1a1a1a]/30 font-medium">
+                  <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#1a1a1a]/8">
+                    <span className="text-xs text-[#1a1a1a]/45 font-medium">
                       &mdash; {story.author}
                     </span>
-                    <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[#1a1a1a]/20 border border-[#1a1a1a]/6 rounded-full px-3 py-1 bg-white/30">
+                    <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[#1a1a1a]/35 border border-[#1a1a1a]/10 rounded-full px-3 py-1 bg-white/40">
                       {story.tag}
                     </span>
                   </div>
@@ -288,13 +287,13 @@ export default function Home() {
 
 
             <h3
-              className="text-xl md:text-2xl font-light text-[#1a1a1a]/80 tracking-tight leading-relaxed"
+              className="text-xl md:text-2xl font-light text-[#0a0a0a]/90 tracking-tight leading-relaxed"
               style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               Your chapter matters too.
             </h3>
 
-            <p className="text-sm text-[#1a1a1a]/40 font-normal max-w-sm mx-auto leading-[1.8]">
+            <p className="text-sm text-[#1a1a1a]/55 font-normal max-w-sm mx-auto leading-[1.8]">
               The failure you&apos;re carrying, the lesson you learned the hard way,
               the growth that came from pain &mdash; someone out there needs to hear it.
             </p>
@@ -308,14 +307,14 @@ export default function Home() {
               </Link>
               <Link
                 href="/explore"
-                className="px-7 py-3 rounded-full border border-[#1a1a1a]/10 text-sm text-[#1a1a1a]/50 font-medium hover:border-[#1a1a1a]/20 hover:text-[#1a1a1a]/70 transition-all cursor-pointer flex items-center gap-2"
+                className="px-7 py-3 rounded-full border border-[#1a1a1a]/15 text-sm text-[#1a1a1a]/65 font-medium hover:border-[#1a1a1a]/25 hover:text-[#1a1a1a]/85 transition-all cursor-pointer flex items-center gap-2"
               >
                 Explore the library <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             <div className="pt-6">
-              <p className="text-[11px] text-[#1a1a1a]/25 font-medium tracking-wide">
+              <p className="text-[11px] text-[#1a1a1a]/40 font-medium tracking-wide">
                 12,000+ experiences preserved &middot; Completely anonymous &middot; Always free
               </p>
             </div>
@@ -327,15 +326,15 @@ export default function Home() {
             FOOTER — minimal, blends into the atmosphere
         ═══════════════════════════════════════════════════════ */}
         <footer className="border-t border-[#1a1a1a]/5 py-10 px-6 md:px-12">
-          <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-[#1a1a1a]/25 font-medium">
+          <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-[#1a1a1a]/40 font-medium">
             <div className="flex items-center gap-2">
               <Heart className="w-3 h-3 text-rose-300/60" />
               <span>Veilory &mdash; Preserving the emotional library of humanity.</span>
             </div>
             <div className="flex items-center gap-6">
-              <Link href="/explore" className="hover:text-[#1a1a1a]/45 transition-colors">Explore</Link>
-              <Link href="/create" className="hover:text-[#1a1a1a]/45 transition-colors">Preserve</Link>
-              <Link href="/auth/signup" className="hover:text-[#1a1a1a]/45 transition-colors">Join</Link>
+              <Link href="/explore" className="hover:text-[#1a1a1a]/65 transition-colors">Explore</Link>
+              <Link href="/create" className="hover:text-[#1a1a1a]/65 transition-colors">Preserve</Link>
+              <Link href="/auth/signup" className="hover:text-[#1a1a1a]/65 transition-colors">Join</Link>
             </div>
           </div>
         </footer>
