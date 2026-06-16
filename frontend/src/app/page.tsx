@@ -70,26 +70,8 @@ export default function Home() {
 
   return (
     <>
-      {/* Inject keyframe animations for the cloud drifting effect */}
+      {/* Inject keyframe animations */}
       <style jsx global>{`
-        @keyframes cloud-drift-1 {
-          0%   { transform: translate(0, 0)    scale(1);    opacity: 0.45; }
-          25%  { transform: translate(40px, -20px) scale(1.05); opacity: 0.5;  }
-          50%  { transform: translate(20px, 10px) scale(1.02);  opacity: 0.4;  }
-          75%  { transform: translate(-20px, -10px) scale(1.07); opacity: 0.48; }
-          100% { transform: translate(0, 0)    scale(1);    opacity: 0.45; }
-        }
-        @keyframes cloud-drift-2 {
-          0%   { transform: translate(0, 0)    scale(1);    opacity: 0.35; }
-          33%  { transform: translate(-50px, 20px) scale(1.08); opacity: 0.4;  }
-          66%  { transform: translate(30px, -15px) scale(1.03); opacity: 0.32; }
-          100% { transform: translate(0, 0)    scale(1);    opacity: 0.35; }
-        }
-        @keyframes cloud-drift-3 {
-          0%   { transform: translate(0, 0)    scale(1);    opacity: 0.25; }
-          50%  { transform: translate(60px, 30px) scale(1.1);  opacity: 0.3;  }
-          100% { transform: translate(0, 0)    scale(1);    opacity: 0.25; }
-        }
         @keyframes gentle-breathe {
           0%, 100% { opacity: 0.6; }
           50%      { opacity: 0.8; }
@@ -100,61 +82,24 @@ export default function Home() {
            style={{ marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", marginTop: "-7rem", marginBottom: "-2.5rem" }}>
 
         {/* ═══════════════════════════════════════════════════════
-            FULL VIEWPORT ANIMATED CLOUD BACKGROUND
-            Multiple layered gradient orbs with slow drift animation
+            FULL VIEWPORT BACKGROUND VIDEO
         ═══════════════════════════════════════════════════════ */}
         <div className="fixed inset-0 w-screen h-screen overflow-hidden -z-20">
-          {/* Base warm gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#f5f0ea] via-[#faf7f2] to-[#f0ebe4]" />
-
-          {/* Cloud layer 1 — warm amber, top-right, 30s drift */}
-          <div
-            className="absolute w-[700px] h-[700px] rounded-full bg-amber-200/45 blur-[130px]"
-            style={{
-              top: "-15%", right: "-10%",
-              animation: "cloud-drift-1 30s ease-in-out infinite",
-            }}
-          />
-
-          {/* Cloud layer 2 — soft rose, bottom-left, 35s drift */}
-          <div
-            className="absolute w-[600px] h-[600px] rounded-full bg-rose-200/35 blur-[120px]"
-            style={{
-              bottom: "-10%", left: "-8%",
-              animation: "cloud-drift-2 35s ease-in-out infinite",
-            }}
-          />
-
-          {/* Cloud layer 3 — pale sky, center, 40s drift */}
-          <div
-            className="absolute w-[500px] h-[500px] rounded-full bg-sky-200/20 blur-[100px]"
-            style={{
-              top: "35%", left: "25%",
-              animation: "cloud-drift-3 40s ease-in-out infinite",
-            }}
-          />
-
-          {/* Cloud layer 4 — lavender whisper, top-left, 28s drift */}
-          <div
-            className="absolute w-[400px] h-[400px] rounded-full bg-violet-200/15 blur-[100px]"
-            style={{
-              top: "10%", left: "5%",
-              animation: "cloud-drift-1 28s ease-in-out infinite reverse",
-            }}
-          />
-
-          {/* Cloud layer 5 — warm peach, bottom-right */}
-          <div
-            className="absolute w-[450px] h-[450px] rounded-full bg-orange-100/25 blur-[110px]"
-            style={{
-              bottom: "5%", right: "5%",
-              animation: "cloud-drift-2 32s ease-in-out infinite reverse",
-            }}
-          />
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover"
+          >
+            <source src="/videos/videoplayback.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         </div>
 
-        {/* Soft readability overlay — barely visible, just enough to lift text */}
-        <div className="fixed inset-0 w-screen h-screen bg-white/20 backdrop-blur-[0.5px] -z-10 pointer-events-none" />
+        {/* Soft white readability overlay above the video */}
+        <div className="fixed inset-0 w-screen h-screen bg-white/70 backdrop-blur-[6px] -z-10 pointer-events-none" />
 
 
         {/* ═══════════════════════════════════════════════════════
