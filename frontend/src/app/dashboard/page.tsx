@@ -8,9 +8,9 @@ import { ExperienceCard } from "@/components/ui/ExperienceCard";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { 
-  Heart, Globe, Ghost, Lock, Clock, AlertCircle, PlusCircle, 
-  Settings2, Activity, ShieldCheck, Database, FileText 
+import {
+  Heart, Globe, Ghost, Lock, AlertCircle, PlusCircle,
+  FileText
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Experience } from "@/types";
@@ -18,7 +18,7 @@ import { Experience } from "@/types";
 export default function Dashboard() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, experiences, deleteExperience } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState("overview");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -30,14 +30,12 @@ export default function Dashboard() {
     privateCount: 0
   });
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/auth/login");
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Compute stats and filter experiences for current user
   useEffect(() => {
     if (user) {
       const userExps = experiences.filter((e) => e.user_id === user.id);
@@ -81,24 +79,21 @@ export default function Dashboard() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-white/10 border-t-indigo-400 animate-spin" />
-          <span className="text-sm text-foreground/40 font-bold uppercase tracking-wider">Unlocking Sanctuary...</span>
+          <div className="w-10 h-10 rounded-full border-3 border-[#1a1a1a]/10 border-t-[#1a1a1a]/50 animate-spin" />
+          <span className="text-sm text-[#1a1a1a]/35 font-medium">Loading your library...</span>
         </div>
       </div>
     );
   }
 
-  // Find target experience for deleting preview
   const deleteTargetExp = experiences.find(e => e.id === deleteTargetId);
 
   return (
     <div className="flex flex-col md:flex-row gap-8 items-start">
-      {/* SIDEBAR */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* MAIN CONTENT AREA */}
       <div className="flex-1 w-full space-y-8 min-h-[calc(100vh-160px)]">
-        
+
         {/* OVERVIEW TAB */}
         {activeTab === "overview" && (
           <motion.div
@@ -106,46 +101,46 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-8"
           >
-            {/* Header Greeting */}
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight">Sanctuary Overview</h1>
-              <p className="text-foreground/50 text-sm mt-1">Hello, {user.name}. Welcome to your emotional reflection dashboard.</p>
+              <h1
+                className="text-2xl font-light tracking-tight text-[#1a1a1a]"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+              >
+                Welcome back, {user.name}
+              </h1>
+              <p className="text-[#1a1a1a]/40 text-sm mt-1 font-light">Your personal library of experiences and reflections.</p>
             </div>
 
-            {/* Stats grid */}
+            {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatsCard 
-                icon={<FileText className="w-5 h-5 text-indigo-400" />} 
-                title="Total Stories" 
-                value={dbStats.total} 
+              <StatsCard
+                icon={<FileText className="w-4.5 h-4.5 text-[#1a1a1a]/40" />}
+                title="Total Stories"
+                value={dbStats.total}
               />
-              <StatsCard 
-                icon={<Globe className="w-5 h-5 text-emerald-400" />} 
-                title="Public Posts" 
-                value={dbStats.publicCount} 
+              <StatsCard
+                icon={<Globe className="w-4.5 h-4.5 text-[#1a1a1a]/40" />}
+                title="Public"
+                value={dbStats.publicCount}
               />
-              <StatsCard 
-                icon={<Ghost className="w-5 h-5 text-rose-400" />} 
-                title="Anonymous Posts" 
-                value={dbStats.anonCount} 
+              <StatsCard
+                icon={<Ghost className="w-4.5 h-4.5 text-[#1a1a1a]/40" />}
+                title="Anonymous"
+                value={dbStats.anonCount}
               />
-              <StatsCard 
-                icon={<Lock className="w-5 h-5 text-amber-400" />} 
-                title="Private Log" 
-                value={dbStats.privateCount} 
+              <StatsCard
+                icon={<Lock className="w-4.5 h-4.5 text-[#1a1a1a]/40" />}
+                title="Private"
+                value={dbStats.privateCount}
               />
             </div>
 
-            {/* Quick Actions & Recent Activity Grid */}
+            {/* Recent + Sidebar */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Quick Actions (Left) */}
+
               <div className="lg:col-span-2 space-y-6">
-                <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                  <h3 className="font-bold flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-indigo-400" />
-                    Recent Activity Logs
-                  </h3>
+                <div className="flex items-center justify-between border-b border-[#1a1a1a]/6 pb-3">
+                  <h3 className="font-medium text-[#1a1a1a]/70 text-sm">Recent stories</h3>
                   <Button variant="ghost" size="sm" onClick={() => setActiveTab("my-experiences")}>
                     View all ({filteredExperiences.length})
                   </Button>
@@ -154,15 +149,15 @@ export default function Dashboard() {
                 {filteredExperiences.length > 0 ? (
                   <div className="space-y-4">
                     {filteredExperiences.slice(0, 2).map((exp) => (
-                      <div 
-                        key={exp.id} 
-                        className="p-5 rounded-2xl glass-panel border border-white/5 bg-slate-900/10 flex items-center justify-between gap-4 hover:border-white/10 transition-colors"
+                      <div
+                        key={exp.id}
+                        className="p-5 rounded-xl bg-white/40 border border-[#1a1a1a]/6 flex items-center justify-between gap-4 hover:bg-white/60 hover:border-[#1a1a1a]/10 transition-colors"
                       >
                         <div className="overflow-hidden">
-                          <h4 className="font-bold text-sm truncate">{exp.title}</h4>
-                          <div className="flex items-center gap-2 text-[10px] text-foreground/40 mt-1 font-semibold">
+                          <h4 className="font-medium text-sm truncate text-[#1a1a1a]">{exp.title}</h4>
+                          <div className="flex items-center gap-2 text-[10px] text-[#1a1a1a]/35 mt-1 font-medium">
                             <span>{new Date(exp.created_at).toLocaleDateString()}</span>
-                            <span>•</span>
+                            <span>&middot;</span>
                             <span className="capitalize">{exp.privacy}</span>
                           </div>
                         </div>
@@ -170,7 +165,7 @@ export default function Dashboard() {
                           <Button variant="ghost" size="sm" className="px-3 py-1.5" onClick={() => handleEdit(exp.id)}>
                             Edit
                           </Button>
-                          <Button variant="ghost" size="sm" className="px-3 py-1.5 text-rose-500/80 hover:text-rose-400 hover:bg-rose-500/5" onClick={() => handleDeleteTrigger(exp.id)}>
+                          <Button variant="ghost" size="sm" className="px-3 py-1.5 text-rose-400/60 hover:text-rose-500 hover:bg-rose-50" onClick={() => handleDeleteTrigger(exp.id)}>
                             Delete
                           </Button>
                         </div>
@@ -178,39 +173,33 @@ export default function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="glass-panel p-10 rounded-[2rem] text-center border-white/5 space-y-4">
-                    <AlertCircle className="w-8 h-8 text-foreground/30 mx-auto" />
+                  <div className="bg-white/40 p-10 rounded-2xl text-center border border-[#1a1a1a]/6 space-y-4">
+                    <AlertCircle className="w-8 h-8 text-[#1a1a1a]/20 mx-auto" />
                     <div>
-                      <h4 className="font-bold text-foreground/80">No stories shared yet</h4>
-                      <p className="text-xs text-foreground/40 mt-1">Start cataloging your failures, growth logs, and lessons.</p>
+                      <h4 className="font-medium text-[#1a1a1a]/70">No stories shared yet</h4>
+                      <p className="text-xs text-[#1a1a1a]/35 mt-1">Start by writing about an experience that shaped you.</p>
                     </div>
                     <Button variant="primary" size="sm" rightIcon={<PlusCircle className="w-4 h-4" />} onClick={() => router.push("/create")}>
-                      Log First Experience
+                      Write your first story
                     </Button>
                   </div>
                 )}
               </div>
 
-              {/* Security Status Panel (Right) */}
+              {/* Side panel */}
               <div className="space-y-6">
-                <h3 className="font-bold border-b border-white/5 pb-3">Sanctuary Health</h3>
-                <GlassCard hoverEffect={false} className="p-6 rounded-[2rem] border-white/5 space-y-4 bg-slate-900/10">
+                <h3 className="font-medium text-[#1a1a1a]/70 text-sm border-b border-[#1a1a1a]/6 pb-3">About your library</h3>
+                <GlassCard hoverEffect={false} className="p-6 rounded-2xl space-y-4">
                   <div className="flex items-center gap-3">
-                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    <Heart className="w-4 h-4 text-rose-300" />
                     <div>
-                      <h4 className="text-xs font-bold text-foreground">Encryption Status</h4>
-                      <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">Mock Encrypted ✅</p>
+                      <h4 className="text-xs font-medium text-[#1a1a1a]">Your stories matter</h4>
+                      <p className="text-[10px] text-[#1a1a1a]/35 mt-0.5">{experiences.length} experiences in the library</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Database className="w-5 h-5 text-indigo-400" />
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground">Local Session Store</h4>
-                      <p className="text-[10px] text-foreground/50 mt-0.5">{experiences.length} total cluster blocks</p>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-[10px] text-foreground/50 leading-relaxed font-medium">
-                    💡 **Reflective Insight**: "Failure is the tax we pay on our growth vectors." Keep logging experiences to enhance search capabilities.
+                  <div className="p-3 bg-[#1a1a1a]/3 rounded-xl border border-[#1a1a1a]/5 text-[10px] text-[#1a1a1a]/45 leading-relaxed font-light"
+                       style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                    &ldquo;Every failure carries a lesson someone else needs to hear.&rdquo;
                   </div>
                 </GlassCard>
               </div>
@@ -226,10 +215,15 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-8"
           >
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <div className="flex items-center justify-between border-b border-[#1a1a1a]/6 pb-4">
               <div>
-                <h1 className="text-3xl font-extrabold tracking-tight">My Shared Experiences</h1>
-                <p className="text-foreground/50 text-sm mt-1">Full registry of your logged chapters.</p>
+                <h1
+                  className="text-2xl font-light tracking-tight text-[#1a1a1a]"
+                  style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                >
+                  My Stories
+                </h1>
+                <p className="text-[#1a1a1a]/40 text-sm mt-1 font-light">All the experiences you&apos;ve shared.</p>
               </div>
               <Button size="sm" variant="primary" leftIcon={<PlusCircle className="w-4 h-4" />} onClick={() => router.push("/create")}>
                 New Story
@@ -239,23 +233,23 @@ export default function Dashboard() {
             {filteredExperiences.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {filteredExperiences.map((exp) => (
-                  <ExperienceCard 
-                    key={exp.id} 
-                    experience={exp} 
+                  <ExperienceCard
+                    key={exp.id}
+                    experience={exp}
                     onEdit={handleEdit}
                     onDelete={handleDeleteTrigger}
                   />
                 ))}
               </div>
             ) : (
-              <div className="glass-panel p-16 rounded-[2.5rem] text-center border-white/5 space-y-4">
-                <AlertCircle className="w-10 h-10 text-foreground/30 mx-auto" />
-                <h4 className="font-bold text-lg">No Experiences Logged</h4>
-                <p className="text-sm text-foreground/50 max-w-sm mx-auto leading-relaxed">
-                  You haven't added any wisdom stories yet. Click the button below to start.
+              <div className="bg-white/40 p-16 rounded-2xl text-center border border-[#1a1a1a]/6 space-y-4">
+                <AlertCircle className="w-10 h-10 text-[#1a1a1a]/20 mx-auto" />
+                <h4 className="font-medium text-lg text-[#1a1a1a]/70" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>No stories yet</h4>
+                <p className="text-sm text-[#1a1a1a]/40 max-w-sm mx-auto leading-relaxed">
+                  You haven&apos;t shared any experiences yet. Start by writing about something that shaped you.
                 </p>
                 <Button variant="primary" onClick={() => router.push("/create")}>
-                  Write First Story
+                  Write your first story
                 </Button>
               </div>
             )}
@@ -270,24 +264,28 @@ export default function Dashboard() {
             className="space-y-8"
           >
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight">Saved Insights</h1>
-              <p className="text-foreground/50 text-sm mt-1">Wisdom chapters you bookmarked during search explorations.</p>
+              <h1
+                className="text-2xl font-light tracking-tight text-[#1a1a1a]"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+              >
+                Saved Stories
+              </h1>
+              <p className="text-[#1a1a1a]/40 text-sm mt-1 font-light">Stories you bookmarked while exploring.</p>
             </div>
 
-            {/* Seed 1 mock bookmarked experience */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ExperienceCard 
+              <ExperienceCard
                 experience={{
                   id: "exp-3-saved",
-                  title: "Left a high-paying FAANG job because I hated coding",
+                  title: "Left a high-paying job because I hated coding",
                   content: "On paper, I had it all. $250k salary, great perks, working on a famous team. But every single morning, I woke up with dread. I hated sitting in front of JIRA tickets all day. I felt guilty because others would kill for my job...",
-                  emotion_tags: ["career mistake", "lost", "burnout", "growth"],
+                  emotion_tags: ["career", "lost", "burnout", "growth"],
                   privacy: "Public",
                   user_id: "user-gamma",
                   author_name: "Sarah Chen",
                   created_at: "2026-03-20T14:45:00Z",
                   updated_at: "2026-03-20T14:45:00Z"
-                }} 
+                }}
               />
             </div>
           </motion.div>
@@ -301,35 +299,40 @@ export default function Dashboard() {
             className="space-y-8 max-w-2xl"
           >
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight">Sanctuary Settings</h1>
-              <p className="text-foreground/50 text-sm mt-1">Configure profile and privacy variables.</p>
+              <h1
+                className="text-2xl font-light tracking-tight text-[#1a1a1a]"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+              >
+                Settings
+              </h1>
+              <p className="text-[#1a1a1a]/40 text-sm mt-1 font-light">Update your profile details.</p>
             </div>
 
-            <GlassCard hoverEffect={false} className="p-8 rounded-[2rem] border-white/5 space-y-6">
+            <GlassCard hoverEffect={false} className="p-8 rounded-2xl space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-foreground/60 pl-1">Preserver Name</label>
-                  <input 
-                    type="text" 
+                  <label className="text-xs font-medium uppercase tracking-wider text-[#1a1a1a]/50 pl-1">Name</label>
+                  <input
+                    type="text"
                     defaultValue={user.name}
-                    className="w-full px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 outline-none text-foreground text-sm"
+                    className="w-full px-5 py-3.5 rounded-xl bg-white/60 border border-[#1a1a1a]/8 outline-none text-[#1a1a1a] text-sm focus:border-[#1a1a1a]/20 transition-colors"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-foreground/60 pl-1">Email Coordinates</label>
-                  <input 
-                    type="email" 
+                  <label className="text-xs font-medium uppercase tracking-wider text-[#1a1a1a]/50 pl-1">Email</label>
+                  <input
+                    type="email"
                     defaultValue={user.email}
-                    className="w-full px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 outline-none text-foreground text-sm opacity-50 cursor-not-allowed"
+                    className="w-full px-5 py-3.5 rounded-xl bg-white/60 border border-[#1a1a1a]/8 outline-none text-[#1a1a1a] text-sm opacity-50 cursor-not-allowed"
                     disabled
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/5 flex items-center justify-end">
-                <Button variant="primary" size="sm" onClick={() => alert("Profile coordinates saved (mock operation).")}>
-                  Save Coordinates
+              <div className="pt-4 border-t border-[#1a1a1a]/6 flex items-center justify-end">
+                <Button variant="primary" size="sm" onClick={() => alert("Profile saved (demo).")}>
+                  Save changes
                 </Button>
               </div>
             </GlassCard>
@@ -338,20 +341,20 @@ export default function Dashboard() {
 
       </div>
 
-      {/* DELETE MODAL CONFIRMATION */}
+      {/* Delete Modal */}
       <Modal
         isOpen={!!deleteTargetId}
         onClose={() => setDeleteTargetId(null)}
-        title="Banish Story?"
-        description="This action is irreversible. The experience logs and any associated vector weights will be completely purged from the sanctuary."
-        confirmLabel="Banish Story"
+        title="Delete this story?"
+        description="This action cannot be undone. The story will be permanently removed from your library."
+        confirmLabel="Delete"
         onConfirm={handleDeleteConfirm}
         isConfirmLoading={isDeleting}
         variant="danger"
       >
         {deleteTargetExp && (
-          <div className="p-4 rounded-xl bg-white/5 border border-white/5 text-xs text-foreground/75 italic line-clamp-3">
-            "{deleteTargetExp.title}"
+          <div className="p-4 rounded-xl bg-[#1a1a1a]/3 border border-[#1a1a1a]/6 text-xs text-[#1a1a1a]/60 italic line-clamp-3">
+            &ldquo;{deleteTargetExp.title}&rdquo;
           </div>
         )}
       </Modal>
@@ -360,16 +363,15 @@ export default function Dashboard() {
   );
 }
 
-// Sub Stats Card Component
 function StatsCard({ icon, title, value }: { icon: React.ReactNode; title: string; value: number }) {
   return (
-    <div className="glass-panel p-6 rounded-2xl border-white/5 bg-slate-900/10 space-y-3">
-      <div className="p-2.5 rounded-xl bg-white/5 w-fit">
+    <div className="bg-white/40 p-5 rounded-xl border border-[#1a1a1a]/6 space-y-3">
+      <div className="p-2 rounded-lg bg-[#1a1a1a]/4 w-fit">
         {icon}
       </div>
       <div>
-        <p className="text-[10px] uppercase font-bold text-foreground/40 tracking-wider">{title}</p>
-        <p className="text-2xl font-black text-foreground mt-0.5">{value}</p>
+        <p className="text-[10px] uppercase font-medium text-[#1a1a1a]/35 tracking-wider">{title}</p>
+        <p className="text-2xl font-light text-[#1a1a1a] mt-0.5">{value}</p>
       </div>
     </div>
   );

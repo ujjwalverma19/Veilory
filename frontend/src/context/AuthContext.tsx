@@ -31,17 +31,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (storedUser) {
       setUser(JSON.parse(storedUser));
-    } else {
-      // Auto-log in a mock user initially to make review easy, or leave it to guest?
-      // Let's seed a default logged in user so the dashboard isn't empty, but let the user log out.
-      const defaultUser: User = {
-        id: "user-alpha",
-        email: "founder@veilory.com",
-        name: "Alex Rivera",
-        created_at: new Date().toISOString()
-      };
-      setUser(defaultUser);
-      localStorage.setItem("veilory_user", JSON.stringify(defaultUser));
     }
 
     if (storedExps) {

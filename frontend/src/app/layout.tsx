@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Veilory | Emotional Wisdom Preservation",
-  description: "An AI-powered platform to preserve and search human emotional experiences, life lessons, and growth stories.",
+  description: "A platform to preserve and explore real human experiences, life lessons, and growth stories.",
 };
 
 export default function RootLayout({
@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased transition-colors duration-300 bg-[#020617] text-foreground`}>
+    <html lang="en">
+      <body className={`${inter.variable} font-sans antialiased transition-colors duration-300 bg-[#faf8f5] text-[#1a1a1a]`}>
         <AuthProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />
@@ -33,4 +33,3 @@ export default function RootLayout({
     </html>
   );
 }
-

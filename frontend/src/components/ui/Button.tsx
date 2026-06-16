@@ -16,21 +16,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center font-semibold rounded-full transition-all duration-300 active:scale-95 disabled:pointer-events-none disabled:opacity-50 select-none cursor-pointer",
-          // Variants
+          "inline-flex items-center justify-center font-medium rounded-full transition-all duration-300 active:scale-95 disabled:pointer-events-none disabled:opacity-50 select-none cursor-pointer",
           {
-            "bg-foreground text-background hover:bg-foreground/90 shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:shadow-[0_0_35px_rgba(255,255,255,0.2)]":
+            "bg-[#1a1a1a] text-white hover:bg-[#2d2d2d]":
               variant === "primary",
-            "bg-white/5 border border-white/10 text-foreground hover:bg-white/10 hover:border-white/20":
+            "bg-white/50 border border-[#1a1a1a]/10 text-[#1a1a1a]/70 hover:bg-white/70 hover:border-[#1a1a1a]/18":
               variant === "secondary",
-            "glass-panel text-foreground hover:bg-white/5 hover:border-white/20 shadow-inner":
+            "bg-white/30 border border-[#1a1a1a]/6 text-[#1a1a1a]/70 hover:bg-white/50":
               variant === "glass",
-            "bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/30":
+            "bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100":
               variant === "danger",
-            "text-foreground/60 hover:text-foreground hover:bg-white/5":
+            "text-[#1a1a1a]/50 hover:text-[#1a1a1a]/80 hover:bg-[#1a1a1a]/5":
               variant === "ghost",
           },
-          // Sizes
           {
             "px-4 py-2 text-sm": size === "sm",
             "px-6 py-3 text-base": size === "md",

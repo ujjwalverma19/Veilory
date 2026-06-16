@@ -267,18 +267,7 @@ export default function Home() {
 
           </div>
 
-          {/* Scroll hint at bottom of viewport */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2.5, duration: 1 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          >
-            <span className="text-[10px] tracking-[0.15em] uppercase text-[#1a1a1a]/25 font-medium">
-              Scroll to read stories
-            </span>
-            <div className="w-px h-8 bg-gradient-to-b from-[#1a1a1a]/15 to-transparent" />
-          </motion.div>
+
         </section>
 
 
@@ -351,7 +340,7 @@ export default function Home() {
             transition={{ duration: 1.2 }}
             className="max-w-xl mx-auto text-center space-y-8"
           >
-            <div className="w-px h-16 bg-[#1a1a1a]/8 mx-auto" />
+
 
             <h3
               className="text-xl md:text-2xl font-light text-[#1a1a1a]/80 tracking-tight leading-relaxed"

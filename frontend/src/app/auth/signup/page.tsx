@@ -6,7 +6,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowRight, Mail, Lock, User, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
 export default function SignupPage() {
@@ -29,15 +28,16 @@ export default function SignupPage() {
         throw new Error("Password must be at least 8 characters long.");
       }
 
-      const success = await signup(name, email, password);
-      if (success) {
+      const result = await signup(name, email, password);
+      if (result) {
         setSuccess(true);
         setTimeout(() => {
           router.push("/dashboard");
         }, 800);
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Registration failed. Try again.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Registration failed.";
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
@@ -45,58 +45,56 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
-      {/* Glow Backdrop */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none -z-10" />
-
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="glass-panel p-8 md:p-12 rounded-[2.5rem] w-full max-w-md relative overflow-hidden bg-slate-900/40 border-white/10"
+        className="bg-white/50 backdrop-blur-sm p-8 md:p-12 rounded-2xl w-full max-w-md border border-[#1a1a1a]/8"
       >
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500" />
-        
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight mb-2">Create Account</h1>
-          <p className="text-foreground/60 text-sm">Open a sanctuary to preserve your wisdom</p>
+          <h1
+            className="text-2xl font-light tracking-tight mb-2 text-[#1a1a1a]"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            Join Veilory
+          </h1>
+          <p className="text-[#1a1a1a]/40 text-sm font-light">Create an account to preserve and share your experiences</p>
         </div>
 
-        {/* Error Alert */}
         {errorMsg && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs flex items-start gap-2.5"
+            className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-start gap-2.5"
           >
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span className="leading-relaxed font-semibold">{errorMsg}</span>
+            <span className="leading-relaxed font-medium">{errorMsg}</span>
           </motion.div>
         )}
 
-        {/* Success Alert */}
         {success && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mb-6 p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-semibold text-center"
+            className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium text-center"
           >
-            Account created. Preparing your dashboard...
+            Account created. Setting up your library...
           </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-foreground/70 pl-1">Full Name</label>
+            <label className="text-xs font-medium uppercase tracking-wider text-[#1a1a1a]/50 pl-1">Full Name</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4.5 flex items-center pointer-events-none text-foreground/35">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#1a1a1a]/25">
                 <User className="w-4 h-4" />
               </div>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full pl-12 pr-4.5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all outline-none text-foreground text-sm"
-                placeholder="Jane Doe"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/60 border border-[#1a1a1a]/8 focus:border-[#1a1a1a]/20 transition-all outline-none text-[#1a1a1a] text-sm placeholder:text-[#1a1a1a]/20"
+                placeholder="Your name"
                 required
                 disabled={isLoading || success}
               />
@@ -104,17 +102,17 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-foreground/70 pl-1">Email Address</label>
+            <label className="text-xs font-medium uppercase tracking-wider text-[#1a1a1a]/50 pl-1">Email</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4.5 flex items-center pointer-events-none text-foreground/35">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#1a1a1a]/25">
                 <Mail className="w-4 h-4" />
               </div>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4.5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all outline-none text-foreground text-sm"
-                placeholder="you@example.com"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/60 border border-[#1a1a1a]/8 focus:border-[#1a1a1a]/20 transition-all outline-none text-[#1a1a1a] text-sm placeholder:text-[#1a1a1a]/20"
+                placeholder="your@email.com"
                 required
                 disabled={isLoading || success}
               />
@@ -122,16 +120,16 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-foreground/70 pl-1">Sanctuary Password</label>
+            <label className="text-xs font-medium uppercase tracking-wider text-[#1a1a1a]/50 pl-1">Password</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4.5 flex items-center pointer-events-none text-foreground/35">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#1a1a1a]/25">
                 <Lock className="w-4 h-4" />
               </div>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-4.5 py-4 rounded-2xl bg-white/5 border border-white/10 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all outline-none text-foreground text-sm"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white/60 border border-[#1a1a1a]/8 focus:border-[#1a1a1a]/20 transition-all outline-none text-[#1a1a1a] text-sm"
                 placeholder="Min. 8 characters"
                 required
                 disabled={isLoading || success}
@@ -139,7 +137,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <Button 
+          <Button
             type="submit"
             variant="primary"
             className="w-full mt-2"
@@ -151,11 +149,11 @@ export default function SignupPage() {
           </Button>
         </form>
 
-        <div className="mt-8 text-center text-xs text-foreground/60 font-semibold border-t border-white/5 pt-6">
+        <div className="mt-8 text-center text-xs text-[#1a1a1a]/40 font-medium border-t border-[#1a1a1a]/6 pt-6">
           <p>
-            Already registered?{" "}
-            <Link href="/auth/login" className="text-purple-400 hover:text-purple-300 transition-colors">
-              Sign In
+            Already have an account?{" "}
+            <Link href="/auth/login" className="text-[#1a1a1a]/70 hover:text-[#1a1a1a] transition-colors underline underline-offset-2">
+              Sign in
             </Link>
           </p>
         </div>
