@@ -5,9 +5,12 @@ Implements experience searching, search usage tracking, history persistence,
 and most-searched topics analytics.
 """
 
+import logging
 from datetime import datetime, timezone
 import random
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, or_
@@ -51,6 +54,10 @@ def _serialize_experience(
         updated_at=experience.updated_at,
         views_count=experience.views_count,
         helpful_count=experience.helpful_count,
+        primary_emotion=experience.primary_emotion,
+        secondary_emotions=experience.secondary_emotions or [],
+        emotion_confidence=experience.emotion_confidence,
+        embedding_reference_id=experience.embedding_reference_id,
     )
 
 
@@ -266,3 +273,80 @@ def get_most_searched_topics(
         PopularSearchResponse(query=row[0], count=row[1])
         for row in results
     ]
+
+
+@router.post(
+    "/semantic",
+    response_model=List[SearchResultItem],
+    summary="Semantic search public experiences",
+)
+def semantic_search(
+    search_in: SearchQuery,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+) -> List[SearchResultItem]:
+    """Execute semantic query matching against ChromaDB vector collection.
+
+    Logged-in users have search limits validated.
+    """
+    query_str = search_in.query.strip()
+    if not query_str:
+        return []
+
+    # Enforce search limits for logged in users
+    if current_user:
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        # Reset count if new day
+        if current_user.last_search_date != today_str:
+            current_user.daily_search_count = 0
+            current_user.last_search_date = today_str
+
+        # Enforce search limit if not premium
+        if current_user.tier != "premium":
+            if current_user.daily_search_count >= current_user.search_limit:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="You've reached today's search limit.",
+                )
+
+        # Log query to SearchHistory
+        history_entry = SearchHistory(user_id=current_user.id, query=query_str)
+        db.add(history_entry)
+
+        # Increment searches count
+        current_user.daily_search_count += 1
+        db.commit()
+
+    try:
+        from app.services.ai.vector_service import vector_service
+        # Fetch matching documents from ChromaDB
+        results = vector_service.search_similar(query_str, n_results=5)
+        
+        # Resolve DB records
+        experience_ids = [res["experience_id"] for res in results]
+        db_records = (
+            db.query(Experience)
+            .filter(Experience.id.in_(experience_ids))
+            .filter(Experience.privacy == PrivacyLevel.PUBLIC)
+            .all()
+        )
+        record_map = {rec.id: rec for rec in db_records}
+        
+        output = []
+        for res in results:
+            exp_id = res["experience_id"]
+            if exp_id in record_map:
+                output.append(
+                    SearchResultItem(
+                        experience=_serialize_experience(
+                            record_map[exp_id], 
+                            current_user_id=current_user.id if current_user else None
+                        ),
+                        score=res["score"]
+                    )
+                )
+        return output
+    except Exception as e:
+        logger.error(f"Semantic search failed: {e}")
+        return []

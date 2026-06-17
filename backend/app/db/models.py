@@ -27,6 +27,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -155,6 +156,12 @@ class Experience(Base):
     # Phase 5 Additions (Analytics & Cached Counters)
     views_count = Column(Integer, nullable=False, default=0, server_default="0")
     helpful_count = Column(Integer, nullable=False, default=0, server_default="0")
+
+    # Phase 6 Additions (AI & Vector Database References)
+    primary_emotion = Column(String(100), nullable=True)
+    secondary_emotions = Column(ARRAY(String).with_variant(SQLiteArray, "sqlite"), nullable=False, default=list)
+    emotion_confidence = Column(Float, nullable=True)
+    embedding_reference_id = Column(String(255), nullable=True)
 
     # Relationships
     author = relationship("User", back_populates="experiences")

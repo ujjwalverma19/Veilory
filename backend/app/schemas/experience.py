@@ -147,6 +147,10 @@ class ExperienceResponse(BaseModel):
     updated_at: Optional[datetime] = None
     views_count: int = 0
     helpful_count: int = 0
+    primary_emotion: Optional[str] = None
+    secondary_emotions: List[str] = []
+    emotion_confidence: Optional[float] = None
+    embedding_reference_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

@@ -19,11 +19,16 @@ Design decisions:
     endpoints.
 """
 
-from typing import Optional
+import logging
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_current_user_optional, get_db
+from app.services.ai.emotion_service import emotion_service
+from app.services.ai.vector_service import vector_service
+
+logger = logging.getLogger(__name__)
 from app.crud.experience import (
     count_public_experiences,
     count_user_experiences,
@@ -76,6 +81,10 @@ def _serialize_experience(
         updated_at=experience.updated_at,
         views_count=experience.views_count,
         helpful_count=experience.helpful_count,
+        primary_emotion=experience.primary_emotion,
+        secondary_emotions=experience.secondary_emotions or [],
+        emotion_confidence=experience.emotion_confidence,
+        embedding_reference_id=experience.embedding_reference_id,
     )
 
 
@@ -101,6 +110,27 @@ def create(
     experience = create_experience(
         db=db, experience_in=experience_in, user_id=current_user.id,
     )
+    
+    # AI Indexing Pipeline
+    try:
+        emotions = emotion_service.detect_emotions(experience.title, experience.content)
+        experience.primary_emotion = emotions["primary"]
+        experience.secondary_emotions = emotions["secondary"]
+        experience.emotion_confidence = emotions["confidence"]
+        
+        doc_id = vector_service.index_experience(
+            experience_id=experience.id,
+            title=experience.title,
+            content=experience.content,
+            primary_emotion=emotions["primary"],
+            secondary_emotions=emotions["secondary"]
+        )
+        experience.embedding_reference_id = doc_id
+        db.commit()
+        db.refresh(experience)
+    except Exception as e:
+        logger.error(f"AI Indexing Pipeline failed on create: {e}")
+
     return _serialize_experience(experience, current_user_id=current_user.id)
 
 
@@ -230,6 +260,27 @@ def update(
     updated = update_experience(
         db=db, db_experience=experience, experience_in=experience_in,
     )
+    
+    # AI Indexing Pipeline (Upsert)
+    try:
+        emotions = emotion_service.detect_emotions(updated.title, updated.content)
+        updated.primary_emotion = emotions["primary"]
+        updated.secondary_emotions = emotions["secondary"]
+        updated.emotion_confidence = emotions["confidence"]
+        
+        doc_id = vector_service.index_experience(
+            experience_id=updated.id,
+            title=updated.title,
+            content=updated.content,
+            primary_emotion=emotions["primary"],
+            secondary_emotions=emotions["secondary"]
+        )
+        updated.embedding_reference_id = doc_id
+        db.commit()
+        db.refresh(updated)
+    except Exception as e:
+        logger.error(f"AI Indexing Pipeline failed on update: {e}")
+
     return _serialize_experience(updated, current_user_id=current_user.id)
 
 
@@ -258,6 +309,13 @@ def remove(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own experiences",
         )
+        
+    # Delete from ChromaDB
+    try:
+        vector_service.delete_experience(experience.id)
+    except Exception as e:
+        logger.warning(f"Failed to delete experience {experience.id} from ChromaDB: {e}")
+
     delete_experience(db, db_experience=experience)
 
 
@@ -358,3 +416,63 @@ def list_most_helpful(
         skip=skip,
         limit=limit,
     )
+
+
+@router.get(
+    "/{experience_id}/related",
+    response_model=List[ExperienceResponse],
+    summary="Get related experiences",
+)
+def get_related(
+    experience_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    """Retrieve semantically similar public experiences.
+
+    Excludes the current experience itself.
+    """
+    experience = get_experience_by_id(db, experience_id=experience_id)
+    if not experience:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Experience not found",
+        )
+        
+    try:
+        # Fetch related experience entries from vector database
+        related_results = vector_service.find_related(experience_id, n_results=3)
+        if not related_results:
+            return []
+            
+        related_ids = [res["experience_id"] for res in related_results]
+        
+        # Load details from SQL database, preserving ChromaDB score ordering
+        db_records = (
+            db.query(Experience)
+            .filter(Experience.id.in_(related_ids))
+            .filter(Experience.privacy == PrivacyLevel.PUBLIC)
+            .all()
+        )
+        
+        record_map = {rec.id: rec for rec in db_records}
+        
+        ordered_experiences = []
+        for res in related_results:
+            rec_id = res["experience_id"]
+            if rec_id in record_map:
+                ordered_experiences.append(
+                    _serialize_experience(record_map[rec_id], current_user_id=current_user.id if current_user else None)
+                )
+                
+        return ordered_experiences
+    except Exception as e:
+        logger.error(f"Failed to fetch related experiences: {e}")
+        # Graceful fallback: return experiences with shared tags
+        fallback_results = []
+        for e in db.query(Experience).filter(Experience.id != experience_id).filter(Experience.privacy == PrivacyLevel.PUBLIC).all():
+            if any(t in experience.emotion_tags for t in e.emotion_tags):
+                fallback_results.append(e)
+            if len(fallback_results) >= 3:
+                break
+        return [_serialize_experience(r, current_user_id=current_user.id if current_user else None) for r in fallback_results]

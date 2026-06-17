@@ -44,6 +44,10 @@ def _serialize_experience(
         updated_at=experience.updated_at,
         views_count=experience.views_count,
         helpful_count=experience.helpful_count,
+        primary_emotion=experience.primary_emotion,
+        secondary_emotions=experience.secondary_emotions or [],
+        emotion_confidence=experience.emotion_confidence,
+        embedding_reference_id=experience.embedding_reference_id,
     )
 
 
