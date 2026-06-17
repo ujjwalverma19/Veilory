@@ -11,7 +11,7 @@ Design decisions:
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, experiences
+from app.api.v1.endpoints import auth, experiences, search, recommendations
 
 api_router = APIRouter()
 
@@ -24,4 +24,14 @@ api_router.include_router(
     experiences.router,
     prefix="/experiences",
     tags=["Experiences"],
+)
+api_router.include_router(
+    search.router,
+    prefix="/search",
+    tags=["Search"],
+)
+api_router.include_router(
+    recommendations.router,
+    prefix="/recommendations",
+    tags=["Recommendations"],
 )

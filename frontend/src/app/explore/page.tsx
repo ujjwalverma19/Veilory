@@ -3,8 +3,9 @@
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { simulateSearch, TRENDING_EMOTIONS } from "@/lib/mockData";
-import { SearchResult, AIInsight } from "@/types";
+import { TRENDING_EMOTIONS } from "@/lib/mockData";
+import { Experience, AIInsight } from "@/types";
+import { searchService, SearchResultItem } from "@/lib/api";
 import { ExperienceCard } from "@/components/ui/ExperienceCard";
 import { EmotionTag } from "@/components/ui/EmotionTag";
 import { Button } from "@/components/ui/Button";
@@ -27,7 +28,7 @@ function ExploreForm() {
 
   const [query, setQuery] = useState(initialQuery);
   const [activeSearchQuery, setActiveSearchQuery] = useState(initialQuery);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
@@ -42,25 +43,22 @@ function ExploreForm() {
     if (initialQuery) {
       setQuery(initialQuery);
       setSelectedTag(initialQuery);
-      // Run the initial search directly, since redirect checking occurred on landing page
       performSearch(initialQuery);
     } else {
       performSearch("");
     }
-  }, [initialQuery, experiences]);
+  }, [initialQuery]);
 
   const performSearch = async (searchQuery: string) => {
     setIsLoading(true);
     setActiveSearchQuery(searchQuery);
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
     try {
-      const { insight, results } = simulateSearch(searchQuery, experiences);
-      setSearchResults(results);
-      setAiInsight(searchQuery ? insight : null);
+      const data = await searchService.search(searchQuery);
+      setSearchResults(data.results);
+      setAiInsight(searchQuery ? data.insight : null);
     } catch (err) {
-      console.error(err);
+      console.error("Search failed:", err);
     } finally {
       setIsLoading(false);
     }

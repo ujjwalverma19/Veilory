@@ -62,6 +62,10 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     created_at: datetime
+    tier: str = "free"
+    daily_search_count: int = 0
+    search_limit: int = 50
+    interests: list[str] = []
 
     model_config = {"from_attributes": True}
 

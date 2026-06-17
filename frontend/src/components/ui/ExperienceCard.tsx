@@ -50,7 +50,10 @@ export function ExperienceCard({
   };
 
   const getMockMetrics = () => {
-    const seed = experience.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    if (experience.views_count !== undefined && experience.helpful_count !== undefined) {
+      return { readers: experience.views_count, helpful: experience.helpful_count };
+    }
+    const seed = String(experience.id).split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const readers = (seed % 140) + 15;
     const helpful = Math.max(1, Math.round(readers * (0.2 + (seed % 20) / 100)));
     return { readers, helpful };

@@ -93,3 +93,14 @@ def root():
 def health_check():
     """Health-check endpoint for load balancers and uptime monitors."""
     return {"status": "healthy"}
+
+
+@app.on_event("startup")
+def startup_db_setup():
+    """Auto-creates SQLite tables for local dev fallback. 
+    
+    Production PostgreSQL uses Alembic migrations.
+    """
+    if settings.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
+        from app.db.database import Base, engine
+        Base.metadata.create_all(bind=engine)

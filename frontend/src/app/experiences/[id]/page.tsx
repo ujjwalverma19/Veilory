@@ -14,6 +14,7 @@ import {
   Bookmark, Share2, Lightbulb, Heart, CheckSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { experienceService, recommendationService } from "@/lib/api";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -24,48 +25,78 @@ export default function ExperienceDetailsPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
 
-  const { experiences, user, isLoading } = useAuth();
+  const { experiences, user, isLoading, logViewedStory } = useAuth();
 
   const [experience, setExperience] = useState<Experience | null>(null);
   const [relatedExperiences, setRelatedExperiences] = useState<Experience[]>([]);
   const [aiInsight, setAiInsight] = useState<AIInsight | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [isHelpful, setIsHelpful] = useState(false);
+  const [helpfulCount, setHelpfulCount] = useState(0);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(true);
 
   useEffect(() => {
-    if (isLoading) return;
+    const fetchDetails = async () => {
+      setIsLoadingDetails(true);
+      try {
+        const exp = await experienceService.getById(id);
+        setExperience(exp);
+        setHelpfulCount(exp.helpful_count || 0);
 
-    const foundExp = experiences.find((e) => e.id === id);
-    if (!foundExp) {
-      setErrorMsg("This experience could not be found.");
+        // Track user view in the backend if logged in
+        if (user) {
+          try {
+            await recommendationService.logView(id);
+          } catch (vErr) {
+            console.warn("Failed to log view on backend:", vErr);
+          }
+        }
+        logViewedStory(id);
+
+        // Fetch related experiences from the context
+        const related = experiences.filter((e) => {
+          if (String(e.id) === String(exp.id)) return false;
+          if (e.privacy === "Private" || e.privacy === "private") return false;
+          return e.emotion_tags.some((tag) => exp.emotion_tags.includes(tag));
+        });
+        setRelatedExperiences(related.slice(0, 2));
+
+        // Fallback or Mock AI Insight details
+        const { insight } = simulateSearch(exp.title + " " + exp.emotion_tags.join(" "), experiences);
+        setAiInsight(insight);
+
+      } catch (err: any) {
+        console.error("Error loading experience details:", err);
+        setErrorMsg(err.message || "This experience could not be loaded.");
+      } finally {
+        setIsLoadingDetails(false);
+      }
+    };
+
+    fetchDetails();
+  }, [id, experiences, user]);
+
+  const handleToggleHelpful = async () => {
+    if (!user) {
+      alert("Please sign in to vote stories as helpful.");
       return;
     }
-
-    if (foundExp.privacy === "Private" && (!user || foundExp.user_id !== user.id)) {
-      setErrorMsg("This is a private reflection. Access denied.");
-      return;
+    try {
+      const updated = await experienceService.toggleHelpful(id);
+      setIsHelpful(!isHelpful);
+      setHelpfulCount(updated.helpful_count || 0);
+    } catch (err) {
+      console.error("Failed to toggle helpful:", err);
     }
-
-    setExperience(foundExp);
-
-    const { insight } = simulateSearch(foundExp.title + " " + foundExp.emotion_tags.join(" "), experiences);
-    setAiInsight(insight);
-
-    const related = experiences.filter((e) => {
-      if (e.id === foundExp.id) return false;
-      if (e.privacy === "Private") return false;
-      return e.emotion_tags.some((tag) => foundExp.emotion_tags.includes(tag));
-    });
-    setRelatedExperiences(related.slice(0, 2));
-
-  }, [id, experiences, user, isLoading]);
+  };
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     alert("Link copied to clipboard!");
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingDetails) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#1a1a1a]/15 border-t-[#1a1a1a]/60" />
@@ -109,6 +140,14 @@ export default function ExperienceDetailsPage({ params }: PageProps) {
         </button>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<Heart className={cn("w-4 h-4", isHelpful ? "fill-rose-300 text-rose-300" : "text-[#1a1a1a]/60")} />}
+            onClick={handleToggleHelpful}
+          >
+            {helpfulCount} Helpful
+          </Button>
           <Button
             variant="ghost"
             size="sm"

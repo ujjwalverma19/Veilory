@@ -15,6 +15,7 @@ import {
 import { motion } from "framer-motion";
 import { Experience } from "@/types";
 import { cn } from "@/lib/utils";
+import { experienceService, recommendationService, RecommendedStory } from "@/lib/api";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -34,7 +35,10 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [filteredExperiences, setFilteredExperiences] = useState<Experience[]>([]);
+  const [myExperiences, setMyExperiences] = useState<Experience[]>([]);
+  const [isLoadingMyExps, setIsLoadingMyExps] = useState(false);
+  const [backendRecs, setBackendRecs] = useState<RecommendedStory[]>([]);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
   const [dbStats, setDbStats] = useState({
     total: 0,
     publicCount: 0,
@@ -53,14 +57,17 @@ export default function Dashboard() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (user) {
-      const userExps = experiences.filter((e) => e.user_id === user.id);
-      setFilteredExperiences(userExps);
-
-      const pub = userExps.filter(e => e.privacy === "Public").length;
-      const anon = userExps.filter(e => e.privacy === "Anonymous").length;
-      const priv = userExps.filter(e => e.privacy === "Private").length;
+  // Fetch my experiences
+  const fetchMyExperiences = async () => {
+    setIsLoadingMyExps(true);
+    try {
+      const res = await experienceService.listMine(0, 100);
+      setMyExperiences(res.experiences);
+      
+      const userExps = res.experiences;
+      const pub = userExps.filter(e => e.privacy.toLowerCase() === "public").length;
+      const anon = userExps.filter(e => e.privacy.toLowerCase() === "anonymous").length;
+      const priv = userExps.filter(e => e.privacy.toLowerCase() === "private").length;
 
       setDbStats({
         total: userExps.length,
@@ -68,109 +75,78 @@ export default function Dashboard() {
         anonCount: anon,
         privateCount: priv
       });
+    } catch (err) {
+      console.error("Failed to fetch my experiences:", err);
+    } finally {
+      setIsLoadingMyExps(false);
     }
-  }, [experiences, user]);
+  };
 
-  // Mock Recommendation Logic (supporting advanced filters/sorting)
-  const recommendations = useMemo(() => {
-    // Filter out user's own stories and private ones
-    let pool = experiences.filter(
-      (e) => e.user_id !== user?.id && e.privacy === "Public"
-    );
+  // Fetch recommendations
+  const fetchRecommendations = async () => {
+    setIsLoadingRecs(true);
+    try {
+      const recs = await recommendationService.getRecommended();
+      setBackendRecs(recs);
+    } catch (err) {
+      console.error("Failed to fetch recommendations:", err);
+    } finally {
+      setIsLoadingRecs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMyExperiences();
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === "recommendations") {
+      fetchRecommendations();
+    }
+  }, [activeTab, isAuthenticated, userInterests]);
+
+  // Frontend filter and sort on recommendations fetched from backend
+  const filteredRecs = useMemo(() => {
+    let pool = [...backendRecs];
 
     // Apply Type Filter
     if (recFilterType !== "all") {
       const typeLower = recFilterType.toLowerCase();
-      pool = pool.filter((exp) =>
-        exp.emotion_tags.some((t) => t.toLowerCase() === typeLower || t.toLowerCase().includes(typeLower))
+      pool = pool.filter(({ experience }) =>
+        experience.emotion_tags.some((t) => t.toLowerCase() === typeLower || t.toLowerCase().includes(typeLower))
       );
     }
 
     // Apply Emotion Tag Filter
     if (recFilterEmotion !== "all") {
       const emotionLower = recFilterEmotion.toLowerCase();
-      pool = pool.filter((exp) =>
-        exp.emotion_tags.some((t) => t.toLowerCase() === emotionLower || t.toLowerCase().includes(emotionLower))
+      pool = pool.filter(({ experience }) =>
+        experience.emotion_tags.some((t) => t.toLowerCase() === emotionLower || t.toLowerCase().includes(emotionLower))
       );
     }
 
-    const scoredList: { experience: Experience; reason: string; score: number }[] = [];
-    const interestSet = new Set(userInterests.map((i) => i.toLowerCase()));
-    const searchTerms = previousSearches.map((s) => s.toLowerCase());
-
-    // Gather tags from viewed stories
-    const viewedStoryTags = new Set<string>();
-    experiences
-      .filter((e) => viewedStoryIds.includes(e.id))
-      .forEach((e) => e.emotion_tags.forEach((t) => viewedStoryTags.add(t.toLowerCase())));
-
-    pool.forEach((exp) => {
-      let score = 0;
-      let reason = "Recommended for you";
-
-      // Match 1: Explicitly saved interests (highest priority)
-      const matchedInterest = exp.emotion_tags.find((t) => interestSet.has(t.toLowerCase()));
-      if (matchedInterest) {
-        score += 10;
-        reason = `Based on your interest in ${matchedInterest.charAt(0).toUpperCase() + matchedInterest.slice(1)}`;
-      }
-
-      // Match 2: Recent searches history match
-      if (score === 0) {
-        const matchedSearch = searchTerms.find((term) =>
-          exp.emotion_tags.some((t) => t.toLowerCase() === term || term.includes(t.toLowerCase())) ||
-          exp.title.toLowerCase().includes(term)
-        );
-        if (matchedSearch) {
-          score += 5;
-          reason = `Based on your recent search for "${matchedSearch.charAt(0).toUpperCase() + matchedSearch.slice(1)}"`;
-        }
-      }
-
-      // Match 3: Reading history viewed story match
-      if (score === 0) {
-        const matchedViewTag = exp.emotion_tags.find((t) => viewedStoryTags.has(t.toLowerCase()));
-        if (matchedViewTag) {
-          score += 3;
-          reason = `Because you read ${matchedViewTag.charAt(0).toUpperCase() + matchedViewTag.slice(1)} stories`;
-        }
-      }
-
-      // Match 4: Default categorization match
-      if (score === 0) {
-        score = 1;
-        if (exp.emotion_tags.includes("growth")) {
-          reason = "Curated for growth and reflection";
-        } else if (exp.emotion_tags.includes("lessons")) {
-          reason = "Curated for life lessons";
-        } else {
-          reason = "Recommended reading";
-        }
-      }
-
-      scoredList.push({ experience: exp, reason, score });
-    });
-
     // Sort Recommendations by Score or Date
     if (recSortBy === "score") {
-      scoredList.sort((a, b) => b.score - a.score);
+      pool.sort((a, b) => b.score - a.score);
     } else {
-      scoredList.sort((a, b) => {
+      pool.sort((a, b) => {
         const dateA = new Date(a.experience.created_at).getTime();
         const dateB = new Date(b.experience.created_at).getTime();
         return recSortBy === "latest" ? dateB - dateA : dateA - dateB;
       });
     }
 
-    return scoredList.slice(0, 4); // Limit to top 4 cards
-  }, [experiences, user, userInterests, previousSearches, viewedStoryIds, recSortBy, recFilterType, recFilterEmotion]);
+    return pool.slice(0, 4); // Limit to top 4 cards
+  }, [backendRecs, recFilterType, recFilterEmotion, recSortBy]);
 
-  const handleEdit = (id: string) => {
+  const handleEdit = (id: string | number) => {
     router.push(`/create?edit=${id}`);
   };
 
-  const handleDeleteTrigger = (id: string) => {
-    setDeleteTargetId(id);
+  const handleDeleteTrigger = (id: string | number) => {
+    setDeleteTargetId(String(id));
   };
 
   const handleDeleteConfirm = async () => {
@@ -179,6 +155,7 @@ export default function Dashboard() {
     try {
       await deleteExperience(deleteTargetId);
       setDeleteTargetId(null);
+      await fetchMyExperiences();
     } catch (err) {
       console.error(err);
     } finally {
@@ -197,7 +174,7 @@ export default function Dashboard() {
     );
   }
 
-  const deleteTargetExp = experiences.find(e => e.id === deleteTargetId);
+  const deleteTargetExp = myExperiences.find(e => String(e.id) === deleteTargetId);
 
   return (
     <div className="flex flex-col md:flex-row gap-8 items-start">
@@ -261,13 +238,19 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between border-b border-[#1a1a1a]/6 pb-3">
                   <h3 className="font-medium text-[#1a1a1a]/70 text-sm">Recent stories</h3>
                   <Button variant="ghost" size="sm" onClick={() => setActiveTab("my-experiences")}>
-                    View all ({filteredExperiences.length})
+                    View all ({myExperiences.length})
                   </Button>
                 </div>
 
-                {filteredExperiences.length > 0 ? (
+                {isLoadingMyExps && myExperiences.length === 0 ? (
                   <div className="space-y-4">
-                    {filteredExperiences.slice(0, 2).map((exp) => (
+                    {[1, 2].map((i) => (
+                      <div key={i} className="p-5 rounded-xl bg-white/40 border border-[#1a1a1a]/6 animate-pulse h-20" />
+                    ))}
+                  </div>
+                ) : myExperiences.length > 0 ? (
+                  <div className="space-y-4">
+                    {myExperiences.slice(0, 2).map((exp) => (
                       <div
                         key={exp.id}
                         className="p-5 rounded-xl bg-white/40 border border-[#1a1a1a]/6 flex items-center justify-between gap-4 hover:bg-white/60 hover:border-[#1a1a1a]/10 transition-colors"
@@ -372,9 +355,15 @@ export default function Dashboard() {
               </Button>
             </div>
 
-            {filteredExperiences.length > 0 ? (
+            {isLoadingMyExps && myExperiences.length === 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredExperiences.map((exp) => (
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-48 rounded-xl bg-white/40 border border-[#1a1a1a]/6 animate-pulse" />
+                ))}
+              </div>
+            ) : myExperiences.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {myExperiences.map((exp) => (
                   <ExperienceCard
                     key={exp.id}
                     experience={exp}
@@ -518,9 +507,15 @@ export default function Dashboard() {
             {/* Recommended Feed */}
             <div className="space-y-6">
               <h3 className="font-medium text-[#1a1a1a]/70 text-sm border-b border-[#1a1a1a]/6 pb-3">Curated Stories</h3>
-              {recommendations.length > 0 ? (
+              {isLoadingRecs ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {recommendations.map(({ experience, reason }) => (
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-48 rounded-xl bg-white/40 border border-[#1a1a1a]/6 animate-pulse" />
+                  ))}
+                </div>
+              ) : filteredRecs.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredRecs.map(({ experience, reason }) => (
                     <div key={experience.id} className="space-y-2.5">
                       {/* Reason indicator badge */}
                       <div className="flex items-center gap-1.5 pl-2 text-[10px] font-semibold text-[#1a1a1a]/45 uppercase tracking-wide">

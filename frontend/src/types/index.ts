@@ -2,7 +2,7 @@
  * Types and interfaces for Veilory Domain Model
  */
 
-export type PrivacyLevel = "Public" | "Anonymous" | "Private";
+export type PrivacyLevel = "Public" | "Anonymous" | "Private" | "public" | "anonymous" | "private";
 
 export interface User {
   id: string;
@@ -10,6 +10,9 @@ export interface User {
   name: string;
   created_at: string;
   tier?: "free" | "premium";
+  daily_search_count?: number;
+  search_limit?: number;
+  interests?: string[];
 }
 
 export interface Experience {
@@ -22,6 +25,8 @@ export interface Experience {
   author_name?: string | null;
   created_at: string;
   updated_at: string;
+  views_count?: number;
+  helpful_count?: number;
 }
 
 export interface AIInsight {

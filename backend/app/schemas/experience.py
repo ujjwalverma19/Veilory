@@ -145,6 +145,8 @@ class ExperienceResponse(BaseModel):
     privacy: PrivacyLevel
     created_at: datetime
     updated_at: Optional[datetime] = None
+    views_count: int = 0
+    helpful_count: int = 0
 
     model_config = {"from_attributes": True}
 

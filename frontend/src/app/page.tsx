@@ -8,6 +8,7 @@ import { Search, Heart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ExperienceCard } from "@/components/ui/ExperienceCard";
 import { Experience } from "@/types";
+import { experienceService } from "@/lib/api";
 
 export default function Home() {
   const router = useRouter();
@@ -69,9 +70,25 @@ export default function Home() {
   const [shuffledStories, setShuffledStories] = useState<Experience[]>([]);
 
   useEffect(() => {
-    // Shuffle stories once on client mount to avoid hydration mismatch
-    const shuffled = [...previewStories].sort(() => Math.random() - 0.5);
-    setShuffledStories(shuffled);
+    // Attempt to load public stories from database first, fallback to static editorial
+    const loadAndShuffle = async () => {
+      try {
+        const data = await experienceService.listPublic(0, 15);
+        if (data.experiences && data.experiences.length >= 3) {
+          // Shuffle database public stories
+          const shuffled = [...data.experiences].sort(() => Math.random() - 0.5);
+          setShuffledStories(shuffled.slice(0, 3));
+        } else {
+          const shuffled = [...previewStories].sort(() => Math.random() - 0.5);
+          setShuffledStories(shuffled);
+        }
+      } catch (err) {
+        console.error("Failed to load DB stories, falling back to static editorial:", err);
+        const shuffled = [...previewStories].sort(() => Math.random() - 0.5);
+        setShuffledStories(shuffled);
+      }
+    };
+    loadAndShuffle();
   }, []);
 
   useEffect(() => {

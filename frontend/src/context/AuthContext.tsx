@@ -2,8 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Experience, PrivacyLevel } from "@/types";
-import { INITIAL_EXPERIENCES } from "@/lib/mockData";
 import { SearchLimitModal } from "@/components/ui/SearchLimitModal";
+import { TokenStorage } from "@/lib/authStorage";
+import { 
+  authService, 
+  experienceService, 
+  searchService, 
+  recommendationService 
+} from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -14,8 +20,8 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   addExperience: (title: string, content: string, tags: string[], privacy: PrivacyLevel) => Promise<Experience>;
-  updateExperience: (id: string, title: string, content: string, tags: string[], privacy: PrivacyLevel) => Promise<Experience>;
-  deleteExperience: (id: string) => Promise<boolean>;
+  updateExperience: (id: string | number, title: string, content: string, tags: string[], privacy: PrivacyLevel) => Promise<Experience>;
+  deleteExperience: (id: string | number) => Promise<boolean>;
 
   // Search limit & Premium states
   searchCount: number;
@@ -30,12 +36,14 @@ interface AuthContextType {
   upgradeToPremium: () => Promise<void>;
 
   // Personalization, views & history tracking states
-  viewedStoryIds: string[];
+  viewedStoryIds: (string | number)[];
   previousSearches: string[];
   userInterests: string[];
-  logViewedStory: (id: string) => void;
+  logViewedStory: (id: string | number) => void;
   logSearchQuery: (query: string) => void;
   toggleUserInterest: (interest: string) => void;
+  refreshUser: () => Promise<void>;
+  refreshExperiences: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,77 +59,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [limitModalType, setLimitModalType] = useState<"guest" | "user" | null>(null);
 
   // Personalization states
-  const [viewedStoryIds, setViewedStoryIds] = useState<string[]>([]);
+  const [viewedStoryIds, setViewedStoryIds] = useState<(string | number)[]>([]);
   const [previousSearches, setPreviousSearches] = useState<string[]>([]);
   const [userInterests, setUserInterests] = useState<string[]>([]);
 
-  const getLimit = () => {
-    if (!user) return 10;
-    if (user.tier === "premium") return Infinity;
-    return 50;
+  const limit = user ? (user.search_limit || 50) : 10;
+  const searchesRemaining = limit === 999999 ? Infinity : Math.max(0, limit - searchCount);
+
+  // Refresh user data from API
+  const refreshUser = async () => {
+    try {
+      const profile = await authService.getProfile();
+      setUser(profile);
+      setSearchCount(profile.daily_search_count || 0);
+      setUserInterests(profile.interests || []);
+    } catch (err) {
+      console.error("Failed to refresh user profile:", err);
+      logout();
+    }
   };
 
-  const limit = getLimit();
-  const searchesRemaining = limit === Infinity ? Infinity : Math.max(0, limit - searchCount);
+  // Fetch experiences
+  const refreshExperiences = async () => {
+    try {
+      const data = await experienceService.listPublic(0, 100);
+      setExperiences(data.experiences);
+    } catch (err) {
+      console.error("Failed to load experiences from backend:", err);
+    }
+  };
 
-  // Initialize from localStorage on mount & sync when user changes
+  // Initialize from backend (or fallback local storage for guest searches)
   useEffect(() => {
-    const storedUser = localStorage.getItem("veilory_user");
-    const storedExps = localStorage.getItem("veilory_experiences");
+    const initAuth = async () => {
+      const token = TokenStorage.getToken();
+      if (token) {
+        try {
+          const profile = await authService.getProfile();
+          setUser(profile);
+          setSearchCount(profile.daily_search_count || 0);
+          setUserInterests(profile.interests || []);
+          
+          // Load search history from DB
+          const history = await searchService.getHistory();
+          setPreviousSearches(history.map(h => h.query));
+        } catch (err) {
+          console.warn("Session restore failed, clearing token", err);
+          TokenStorage.clearToken();
+        }
+      } else {
+        // Load guest daily searches
+        const today = new Date().toLocaleDateString('en-CA');
+        const guestSearchesStr = localStorage.getItem("veilory_guest_searches");
+        if (guestSearchesStr) {
+          const parsed = JSON.parse(guestSearchesStr);
+          if (parsed.date === today) {
+            setSearchCount(parsed.count);
+          } else {
+            setSearchCount(0);
+            localStorage.setItem("veilory_guest_searches", JSON.stringify({ date: today, count: 0 }));
+          }
+        }
+      }
 
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+      await refreshExperiences();
+      setIsLoading(false);
+    };
 
-    if (storedExps) {
-      setExperiences(JSON.parse(storedExps));
-    } else {
-      setExperiences(INITIAL_EXPERIENCES);
-      localStorage.setItem("veilory_experiences", JSON.stringify(INITIAL_EXPERIENCES));
-    }
-
-    setIsLoading(false);
+    initAuth();
   }, []);
 
+  // Sync viewed stories list on login
   useEffect(() => {
-    const today = new Date().toLocaleDateString('en-CA');
-    const userPrefix = user ? `user_${user.id}` : "guest";
-    
-    // 1. Load search count for today
-    const limitKey = `veilory_${userPrefix}_searches`;
-    const storedLimitStr = localStorage.getItem(limitKey);
-    if (storedLimitStr) {
-      const parsed = JSON.parse(storedLimitStr);
-      if (parsed.date === today) {
-        setSearchCount(parsed.count);
-      } else {
-        setSearchCount(0);
-        localStorage.setItem(limitKey, JSON.stringify({ date: today, count: 0 }));
-      }
+    if (user) {
+      // Load user search history
+      searchService.getHistory()
+        .then(history => setPreviousSearches(history.map(h => h.query)))
+        .catch(console.error);
+
+      // Load user interests
+      recommendationService.getInterests()
+        .then(interests => setUserInterests(interests))
+        .catch(console.error);
     } else {
-      setSearchCount(0);
-      localStorage.setItem(limitKey, JSON.stringify({ date: today, count: 0 }));
+      // Local storage fallback for guest search history
+      const guestHistory = localStorage.getItem("veilory_guest_searches_history");
+      setPreviousSearches(guestHistory ? JSON.parse(guestHistory) : []);
     }
-
-    // 2. Load viewed story history
-    const viewsKey = `veilory_${userPrefix}_viewed_stories`;
-    const storedViews = localStorage.getItem(viewsKey);
-    setViewedStoryIds(storedViews ? JSON.parse(storedViews) : []);
-
-    // 3. Load search history
-    const historyKey = `veilory_${userPrefix}_searches_history`;
-    const storedHistory = localStorage.getItem(historyKey);
-    setPreviousSearches(storedHistory ? JSON.parse(storedHistory) : []);
-
-    // 4. Load interests
-    const interestsKey = `veilory_${userPrefix}_interests`;
-    const storedInterests = localStorage.getItem(interestsKey);
-    setUserInterests(storedInterests ? JSON.parse(storedInterests) : []);
   }, [user]);
 
   const attemptSearch = (): boolean => {
-    const currentLimit = getLimit();
-    if (searchCount >= currentLimit) {
+    if (searchesRemaining <= 0) {
       setLimitModalType(user ? "user" : "guest");
       setShowLimitModal(true);
       return false;
@@ -130,12 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const incrementSearchCount = (): boolean => {
-    const today = new Date().toLocaleDateString('en-CA');
-    const userPrefix = user ? `user_${user.id}` : "guest";
-    const limitKey = `veilory_${userPrefix}_searches`;
-    const currentLimit = getLimit();
-
-    if (searchCount >= currentLimit) {
+    if (searchesRemaining <= 0) {
       setLimitModalType(user ? "user" : "guest");
       setShowLimitModal(true);
       return false;
@@ -143,99 +166,121 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const newCount = searchCount + 1;
     setSearchCount(newCount);
-    localStorage.setItem(limitKey, JSON.stringify({ date: today, count: newCount }));
+
+    if (!user) {
+      const today = new Date().toLocaleDateString('en-CA');
+      localStorage.setItem("veilory_guest_searches", JSON.stringify({ date: today, count: newCount }));
+    }
     return true;
   };
 
   const upgradeToPremium = async () => {
     if (!user) return;
-    const upgradedUser: User = { ...user, tier: "premium" };
-    setUser(upgradedUser);
-    localStorage.setItem("veilory_user", JSON.stringify(upgradedUser));
+    try {
+      const upgradedUser = await authService.upgradeTier();
+      setUser(upgradedUser);
+    } catch (err) {
+      console.error("Upgrade to Premium failed:", err);
+      throw err;
+    }
   };
 
-  const logViewedStory = (id: string) => {
-    const userPrefix = user ? `user_${user.id}` : "guest";
-    const key = `veilory_${userPrefix}_viewed_stories`;
+  const logViewedStory = async (id: string | number) => {
     setViewedStoryIds(prev => {
       if (prev.includes(id)) return prev;
-      const updated = [id, ...prev];
-      localStorage.setItem(key, JSON.stringify(updated));
-      return updated;
+      return [id, ...prev];
     });
+
+    if (user) {
+      try {
+        await recommendationService.logView(id);
+      } catch (err) {
+        console.error("Failed to log view to backend:", err);
+      }
+    } else {
+      // Local storage fallback for guests
+      const guestViewsKey = "veilory_guest_viewed_stories";
+      const stored = localStorage.getItem(guestViewsKey);
+      const views = stored ? JSON.parse(stored) : [];
+      if (!views.includes(id)) {
+        localStorage.setItem(guestViewsKey, JSON.stringify([id, ...views]));
+      }
+    }
   };
 
-  const logSearchQuery = (query: string) => {
+  const logSearchQuery = async (query: string) => {
     if (!query.trim()) return;
-    const userPrefix = user ? `user_${user.id}` : "guest";
-    const key = `veilory_${userPrefix}_searches_history`;
+    
     setPreviousSearches(prev => {
       const filtered = prev.filter(q => q.toLowerCase() !== query.toLowerCase());
       const updated = [query, ...filtered].slice(0, 10);
-      localStorage.setItem(key, JSON.stringify(updated));
+      
+      if (!user) {
+        localStorage.setItem("veilory_guest_searches_history", JSON.stringify(updated));
+      }
       return updated;
     });
+    
+    // Note: Backend /search endpoint automatically saves searches for logged in users
   };
 
-  const toggleUserInterest = (interest: string) => {
-    const userPrefix = user ? `user_${user.id}` : "guest";
-    const key = `veilory_${userPrefix}_interests`;
-    setUserInterests(prev => {
-      const updated = prev.includes(interest)
-        ? prev.filter(i => i !== interest)
-        : [...prev, interest];
-      localStorage.setItem(key, JSON.stringify(updated));
-      return updated;
-    });
+  const toggleUserInterest = async (interest: string) => {
+    const cleaned = interest.trim().toLowerCase();
+    const updated = userInterests.includes(cleaned)
+      ? userInterests.filter(i => i !== cleaned)
+      : [...userInterests, cleaned];
+
+    setUserInterests(updated);
+
+    if (user) {
+      try {
+        await recommendationService.updateInterests(updated);
+      } catch (err) {
+        console.error("Failed to sync interests to backend:", err);
+      }
+    } else {
+      localStorage.setItem("veilory_guest_interests", JSON.stringify(updated));
+    }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    if (email && password.length >= 8) {
-      const mockUser: User = {
-        id: "user-alpha",
-        email: email,
-        name: email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1),
-        created_at: new Date().toISOString(),
-        tier: "free"
-      };
-      setUser(mockUser);
-      localStorage.setItem("veilory_user", JSON.stringify(mockUser));
+    try {
+      await authService.login(email, password);
+      await refreshUser();
+      await refreshExperiences();
       setIsLoading(false);
       return true;
+    } catch (err) {
+      setIsLoading(false);
+      throw err;
     }
-
-    setIsLoading(false);
-    throw new Error("Invalid email or password. Password must be at least 8 characters.");
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    if (name && email && password.length >= 8) {
-      const mockUser: User = {
-        id: `user-${Math.random().toString(36).substr(2, 9)}`,
-        email: email,
-        name: name,
-        created_at: new Date().toISOString(),
-        tier: "free"
-      };
-      setUser(mockUser);
-      localStorage.setItem("veilory_user", JSON.stringify(mockUser));
+    try {
+      await authService.signup(name, email, password);
+      // Automatically log in after sign up
+      await authService.login(email, password);
+      await refreshUser();
+      await refreshExperiences();
       setIsLoading(false);
       return true;
+    } catch (err) {
+      setIsLoading(false);
+      throw err;
     }
-
-    setIsLoading(false);
-    throw new Error("Signup failed. Password must be at least 8 characters.");
   };
 
   const logout = () => {
+    TokenStorage.clearToken();
     setUser(null);
-    localStorage.removeItem("veilory_user");
+    setSearchCount(0);
+    setUserInterests([]);
+    setPreviousSearches([]);
+    setViewedStoryIds([]);
+    refreshExperiences();
   };
 
   const addExperience = async (
@@ -244,73 +289,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     tags: string[],
     privacy: PrivacyLevel
   ): Promise<Experience> => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     if (!user) throw new Error("Authentication required.");
-
-    const newExp: Experience = {
-      id: `exp-${Math.random().toString(36).substr(2, 9)}`,
-      title,
-      content,
-      emotion_tags: tags.map(t => t.trim().toLowerCase()).filter(Boolean),
-      privacy,
-      user_id: user.id,
-      author_name: privacy === "Anonymous" ? null : user.name,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const updated = [newExp, ...experiences];
-    setExperiences(updated);
-    localStorage.setItem("veilory_experiences", JSON.stringify(updated));
-    return newExp;
+    
+    try {
+      const newExp = await experienceService.create(title, content, tags, privacy);
+      await refreshExperiences();
+      return newExp;
+    } catch (err) {
+      console.error("Create experience failed:", err);
+      throw err;
+    }
   };
 
   const updateExperience = async (
-    id: string,
+    id: string | number,
     title: string,
     content: string,
     tags: string[],
     privacy: PrivacyLevel
   ): Promise<Experience> => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     if (!user) throw new Error("Authentication required.");
 
-    const index = experiences.findIndex((e) => e.id === id);
-    if (index === -1) throw new Error("Experience not found.");
-    if (experiences[index].user_id !== user.id) throw new Error("Permission denied.");
-
-    const updatedExp: Experience = {
-      ...experiences[index],
-      title,
-      content,
-      emotion_tags: tags.map(t => t.trim().toLowerCase()).filter(Boolean),
-      privacy,
-      author_name: privacy === "Anonymous" ? null : user.name,
-      updated_at: new Date().toISOString()
-    };
-
-    const updated = [...experiences];
-    updated[index] = updatedExp;
-    setExperiences(updated);
-    localStorage.setItem("veilory_experiences", JSON.stringify(updated));
-    return updatedExp;
+    try {
+      const updatedExp = await experienceService.update(id, {
+        title,
+        content,
+        emotion_tags: tags,
+        privacy
+      });
+      await refreshExperiences();
+      return updatedExp;
+    } catch (err) {
+      console.error("Update experience failed:", err);
+      throw err;
+    }
   };
 
-  const deleteExperience = async (id: string): Promise<boolean> => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
+  const deleteExperience = async (id: string | number): Promise<boolean> => {
     if (!user) throw new Error("Authentication required.");
 
-    const exp = experiences.find((e) => e.id === id);
-    if (!exp) throw new Error("Experience not found.");
-    if (exp.user_id !== user.id) throw new Error("Permission denied.");
-
-    const updated = experiences.filter((e) => e.id !== id);
-    setExperiences(updated);
-    localStorage.setItem("veilory_experiences", JSON.stringify(updated));
-    return true;
+    try {
+      await experienceService.delete(id);
+      await refreshExperiences();
+      return true;
+    } catch (err) {
+      console.error("Delete experience failed:", err);
+      throw err;
+    }
   };
 
   return (
@@ -341,7 +366,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userInterests,
         logViewedStory,
         logSearchQuery,
-        toggleUserInterest
+        toggleUserInterest,
+        refreshUser,
+        refreshExperiences
       }}
     >
       {children}

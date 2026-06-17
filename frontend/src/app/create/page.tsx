@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/Button";
 import { EmotionTag } from "@/components/ui/EmotionTag";
 import { PenLine, Send, Tag, Lock, Globe, Ghost, ArrowLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { experienceService } from "@/lib/api";
 
 function CreateExperienceForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
 
-  const { experiences, addExperience, updateExperience, isAuthenticated, isLoading } = useAuth();
+  const { addExperience, updateExperience, isAuthenticated, isLoading } = useAuth();
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -32,19 +33,28 @@ function CreateExperienceForm() {
   }, [isLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (editId) {
-      const exp = experiences.find((e) => e.id === editId);
-      if (exp) {
+    if (!editId) return;
+
+    const fetchExpToEdit = async () => {
+      try {
+        const exp = await experienceService.getById(editId);
         setIsEditMode(true);
         setTitle(exp.title);
         setContent(exp.content);
         setTagsInput(exp.emotion_tags.join(", "));
-        setPrivacy(exp.privacy);
-      } else {
-        setErrorMsg("The requested experience was not found.");
+        
+        // Format lowercase backend privacy enum (public, anonymous, private)
+        // to frontend component casing (Public, Anonymous, Private)
+        const capPrivacy = (exp.privacy.charAt(0).toUpperCase() + exp.privacy.slice(1)) as PrivacyLevel;
+        setPrivacy(capPrivacy);
+      } catch (err: any) {
+        console.error("Failed to load experience to edit:", err);
+        setErrorMsg(err.message || "The requested experience could not be loaded.");
       }
-    }
-  }, [editId, experiences]);
+    };
+
+    fetchExpToEdit();
+  }, [editId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

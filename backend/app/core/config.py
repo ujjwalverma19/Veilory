@@ -44,10 +44,14 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "veilory_db"
+    USE_SQLITE: bool = True
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        """Construct the async-compatible PostgreSQL connection string."""
+        """Construct the connection string. Fallback to SQLite for local development."""
+        import os
+        if self.USE_SQLITE and not os.getenv("RENDER"):
+            return "sqlite:///veilory.db"
         return (
             f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

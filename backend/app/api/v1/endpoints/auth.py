@@ -100,3 +100,20 @@ def read_current_user(
     """
     return current_user
 
+
+@router.post(
+    "/upgrade",
+    response_model=UserResponse,
+    summary="Upgrade user to premium preview",
+)
+def upgrade_tier(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserResponse:
+    """Upgrade the current user's account tier to premium for demo/preview purposes."""
+    current_user.tier = "premium"
+    current_user.search_limit = 999999  # represent infinity / unlimited searches
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
