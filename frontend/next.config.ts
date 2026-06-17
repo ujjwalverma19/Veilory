@@ -3,14 +3,14 @@ import type { NextConfig } from "next";
 /**
  * Production Next.js configuration for Veilory.
  * - Standalone output enables easy Docker deployment.
- * - React strict mode and SWC minification improve performance.
+ * - React strict mode improves performance.
  * - Image domains whitelist is empty because we rely on Vercel Image Optimization.
  * - Security headers ensure CSP, Referrer‑Policy, etc.
  */
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
-  swcMinify: true,
+
   images: {
     // Vercel will handle remote image optimization; no external domains needed now.
     remotePatterns: [],
