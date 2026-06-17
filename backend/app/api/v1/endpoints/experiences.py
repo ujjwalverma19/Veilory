@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_current_user_optional, get_db
 from app.services.ai.emotion_service import emotion_service
 from app.services.ai.vector_service import vector_service
+from app.services.ai.wisdom_service import wisdom_service
 
 logger = logging.getLogger(__name__)
 from app.crud.experience import (
@@ -85,6 +86,16 @@ def _serialize_experience(
         secondary_emotions=experience.secondary_emotions or [],
         emotion_confidence=experience.emotion_confidence,
         embedding_reference_id=experience.embedding_reference_id,
+        main_theme=experience.main_theme,
+        theme_confidence=experience.theme_confidence,
+        why_matters=experience.why_matters,
+        short_summary=experience.short_summary,
+        medium_summary=experience.medium_summary,
+        key_lesson=experience.key_lesson,
+        lessons_learned=experience.lessons_learned or [],
+        emotion_initial=experience.emotion_initial,
+        emotion_catalyst=experience.emotion_catalyst,
+        emotion_outcome=experience.emotion_outcome,
     )
 
 
@@ -117,6 +128,24 @@ def create(
         experience.primary_emotion = emotions["primary"]
         experience.secondary_emotions = emotions["secondary"]
         experience.emotion_confidence = emotions["confidence"]
+        
+        # Phase 7 AI Wisdom Extraction
+        wisdom = wisdom_service.generate_wisdom(
+            title=experience.title,
+            content=experience.content,
+            primary_emotion=emotions["primary"],
+            secondary_emotions=emotions["secondary"]
+        )
+        experience.main_theme = wisdom["main_theme"]
+        experience.theme_confidence = wisdom["theme_confidence"]
+        experience.why_matters = wisdom["why_matters"]
+        experience.short_summary = wisdom["short_summary"]
+        experience.medium_summary = wisdom["medium_summary"]
+        experience.key_lesson = wisdom["key_lesson"]
+        experience.lessons_learned = wisdom["lessons_learned"]
+        experience.emotion_initial = wisdom["emotion_initial"]
+        experience.emotion_catalyst = wisdom["emotion_catalyst"]
+        experience.emotion_outcome = wisdom["emotion_outcome"]
         
         doc_id = vector_service.index_experience(
             experience_id=experience.id,
@@ -267,6 +296,24 @@ def update(
         updated.primary_emotion = emotions["primary"]
         updated.secondary_emotions = emotions["secondary"]
         updated.emotion_confidence = emotions["confidence"]
+        
+        # Phase 7 AI Wisdom Extraction
+        wisdom = wisdom_service.generate_wisdom(
+            title=updated.title,
+            content=updated.content,
+            primary_emotion=emotions["primary"],
+            secondary_emotions=emotions["secondary"]
+        )
+        updated.main_theme = wisdom["main_theme"]
+        updated.theme_confidence = wisdom["theme_confidence"]
+        updated.why_matters = wisdom["why_matters"]
+        updated.short_summary = wisdom["short_summary"]
+        updated.medium_summary = wisdom["medium_summary"]
+        updated.key_lesson = wisdom["key_lesson"]
+        updated.lessons_learned = wisdom["lessons_learned"]
+        updated.emotion_initial = wisdom["emotion_initial"]
+        updated.emotion_catalyst = wisdom["emotion_catalyst"]
+        updated.emotion_outcome = wisdom["emotion_outcome"]
         
         doc_id = vector_service.index_experience(
             experience_id=updated.id,
@@ -458,9 +505,11 @@ def get_related(
         record_map = {rec.id: rec for rec in db_records}
         
         ordered_experiences = []
+        seen_ids = {experience_id}
         for res in related_results:
             rec_id = res["experience_id"]
-            if rec_id in record_map:
+            if rec_id in record_map and rec_id not in seen_ids:
+                seen_ids.add(rec_id)
                 ordered_experiences.append(
                     _serialize_experience(record_map[rec_id], current_user_id=current_user.id if current_user else None)
                 )
@@ -470,9 +519,11 @@ def get_related(
         logger.error(f"Failed to fetch related experiences: {e}")
         # Graceful fallback: return experiences with shared tags
         fallback_results = []
-        for e in db.query(Experience).filter(Experience.id != experience_id).filter(Experience.privacy == PrivacyLevel.PUBLIC).all():
-            if any(t in experience.emotion_tags for t in e.emotion_tags):
-                fallback_results.append(e)
+        seen_fallback = {experience_id}
+        for item in db.query(Experience).filter(Experience.id != experience_id).filter(Experience.privacy == PrivacyLevel.PUBLIC).all():
+            if item.id not in seen_fallback and any(t in experience.emotion_tags for t in item.emotion_tags):
+                seen_fallback.add(item.id)
+                fallback_results.append(item)
             if len(fallback_results) >= 3:
                 break
         return [_serialize_experience(r, current_user_id=current_user.id if current_user else None) for r in fallback_results]

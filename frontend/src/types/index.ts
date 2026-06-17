@@ -27,6 +27,20 @@ export interface Experience {
   updated_at: string;
   views_count?: number;
   helpful_count?: number;
+  primary_emotion?: string | null;
+  secondary_emotions?: string[];
+  emotion_confidence?: number | null;
+  embedding_reference_id?: string | null;
+  main_theme?: string | null;
+  theme_confidence?: number | null;
+  why_matters?: string | null;
+  short_summary?: string | null;
+  medium_summary?: string | null;
+  key_lesson?: string | null;
+  lessons_learned?: string[];
+  emotion_initial?: string | null;
+  emotion_catalyst?: string | null;
+  emotion_outcome?: string | null;
 }
 
 export interface AIInsight {
@@ -39,6 +53,7 @@ export interface AIInsight {
 export interface SearchResult {
   experience: Experience;
   score: number; // Semantic similarity score
+  explanation?: string;
 }
 
 export interface SearchQueryResponse {

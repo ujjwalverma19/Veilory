@@ -33,10 +33,10 @@ class Settings(BaseSettings):
     # ─── Application ─────────────────────────────────────────────────
     PROJECT_NAME: str = "Veilory"
     API_V1_STR: str = "/api/v1"
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-    ]
+    # Frontend URLs – can be a single URL or a JSON list
+    FRONTEND_URL: str = "https://veilory.online"
+    # Derived origins list for CORS middleware – ensures credentials work across subdomains
+    BACKEND_CORS_ORIGINS: List[str] = [FRONTEND_URL, f"https://www{FRONTEND_URL[len('https://'):] }"]
 
     # ─── PostgreSQL ──────────────────────────────────────────────────
     POSTGRES_SERVER: str = "localhost"
@@ -45,22 +45,19 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "veilory_db"
     USE_SQLITE: bool = True
+    # ─── Persistence ────────────────────────────────────────────────────────
+    CHROMA_DB_PATH: str = "./chroma_db"
+    # ─── Feature Flags ───────────────────────────────────────────────────────
+    USE_COOKIE_AUTH: bool = False
 
-    @property
-    def SQLALCHEMY_DATABASE_URI(self) -> str:
-        """Construct the connection string. Fallback to SQLite for local development."""
-        import os
-        if self.USE_SQLITE and not os.getenv("RENDER"):
-            return "sqlite:///veilory.db"
-        return (
-            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-            f"@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        )
+
 
     # ─── JWT Authentication ──────────────────────────────────────────
-    SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION_USE_SECRETS_TOKEN_URLSAFE_64"
+    from pydantic import Field
+    SECRET_KEY: str = Field(..., env="SECRET_KEY")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1440 minutes = 24h
+    COOKIE_DOMAIN: str = ".veilory.online"
 
     # ─── Validators ──────────────────────────────────────────────────
 

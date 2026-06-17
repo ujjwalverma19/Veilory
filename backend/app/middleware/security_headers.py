@@ -1,0 +1,17 @@
+import time
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        # Content Security Policy – allow resources only from self and trusted domains
+        csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.veilory.online;"
+        response.headers['Content-Security-Policy'] = csp
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        # Optional: enable HSTS for HTTPS only
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+        return response

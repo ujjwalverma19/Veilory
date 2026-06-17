@@ -406,6 +406,7 @@ function ExploreForm() {
                         key={res.experience.id}
                         experience={res.experience}
                         score={activeSearchQuery ? res.score : undefined}
+                        explanation={res.explanation}
                       />
                     ))}
                   </div>

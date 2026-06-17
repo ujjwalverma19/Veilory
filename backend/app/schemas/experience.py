@@ -151,6 +151,16 @@ class ExperienceResponse(BaseModel):
     secondary_emotions: List[str] = []
     emotion_confidence: Optional[float] = None
     embedding_reference_id: Optional[str] = None
+    main_theme: Optional[str] = None
+    theme_confidence: Optional[float] = None
+    why_matters: Optional[str] = None
+    short_summary: Optional[str] = None
+    medium_summary: Optional[str] = None
+    key_lesson: Optional[str] = None
+    lessons_learned: List[str] = []
+    emotion_initial: Optional[str] = None
+    emotion_catalyst: Optional[str] = None
+    emotion_outcome: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

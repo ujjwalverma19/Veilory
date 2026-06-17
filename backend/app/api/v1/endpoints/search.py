@@ -58,6 +58,16 @@ def _serialize_experience(
         secondary_emotions=experience.secondary_emotions or [],
         emotion_confidence=experience.emotion_confidence,
         embedding_reference_id=experience.embedding_reference_id,
+        main_theme=experience.main_theme,
+        theme_confidence=experience.theme_confidence,
+        why_matters=experience.why_matters,
+        short_summary=experience.short_summary,
+        medium_summary=experience.medium_summary,
+        key_lesson=experience.key_lesson,
+        lessons_learned=experience.lessons_learned or [],
+        emotion_initial=experience.emotion_initial,
+        emotion_catalyst=experience.emotion_catalyst,
+        emotion_outcome=experience.emotion_outcome,
     )
 
 
@@ -75,87 +85,12 @@ def execute_search(
     # Optional dependency: allows both guests and logged-in users to search
     current_user: Optional[User] = Depends(get_current_user_optional),
 ) -> SearchQueryResponse:
-    """Query the experience library with text-matching and check daily limits.
+    """Consolidated default search routing through semantic vector query (Feature 2)."""
+    return semantic_search(search_in=search_in, db=db, current_user=current_user)
 
-    Logged-in users have search counts updated in PostgreSQL.
-    """
-    query_str = search_in.query.strip()
+
+def _generate_query_insight(query_str: str) -> AIInsight:
     lowercase_query = query_str.lower()
-
-    # 1. Search Limits check (only for authenticated users)
-    if current_user:
-        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-        # Reset count if new day
-        if current_user.last_search_date != today_str:
-            current_user.daily_search_count = 0
-            current_user.last_search_date = today_str
-
-        # Enforce search limit if not premium
-        if current_user.tier != "premium":
-            if current_user.daily_search_count >= current_user.search_limit:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="You've reached today's search limit.",
-                )
-
-        # Log query to SearchHistory
-        history_entry = SearchHistory(user_id=current_user.id, query=query_str)
-        db.add(history_entry)
-
-        # Increment searches count
-        current_user.daily_search_count += 1
-        db.commit()
-
-    # 2. Perform text-matching database query
-    # Match title, content, or emotion tags
-    # SQLite fallback doesn't support ILIKE, so we use lower() and contains
-    results_pool = (
-        db.query(Experience)
-        .filter(Experience.privacy != PrivacyLevel.PRIVATE)
-        .all()
-    )
-
-    scored_results = []
-    for exp in results_pool:
-        score = 0.2  # Base score
-        
-        # Tags matching
-        for tag in exp.emotion_tags:
-            if tag.lower() in lowercase_query:
-                score += 0.25
-
-        # Keywords matching
-        if "startup" in lowercase_query and "startup" in exp.content.lower():
-            score += 0.3
-        if "fail" in lowercase_query and ("fail" in exp.content.lower() or "fail" in exp.title.lower()):
-            score += 0.25
-        if "code" in lowercase_query and "coding" in exp.content.lower():
-            score += 0.35
-        if "job" in lowercase_query and "job" in exp.content.lower():
-            score += 0.2
-        if "love" in lowercase_query or "heartbreak" in lowercase_query or "relationship" in lowercase_query:
-            if "relationship" in exp.content.lower() or "heartbreak" in exp.content.lower() or "separate" in exp.content.lower():
-                score += 0.35
-        if "exam" in lowercase_query or "college" in lowercase_query or "school" in lowercase_query:
-            if "exam" in exp.content.lower() or "academic" in exp.content.lower() or "university" in exp.content.lower():
-                score += 0.4
-
-        # Add organic small factor
-        score = min(0.98, score + (random.random() * 0.05))
-
-        # Filter out low scores if we have a search query, otherwise show all
-        if not lowercase_query or score > 0.3:
-            scored_results.append(
-                SearchResultItem(
-                    experience=_serialize_experience(exp, current_user.id if current_user else None),
-                    score=score,
-                )
-            )
-
-    scored_results.sort(key=lambda r: r.score, reverse=True)
-
-    # 3. Generate Mock AI Insight based on keywords
     insight = AIInsight(
         summary="Reflecting on your search, there is a recurring theme of transition and realignment.",
         themes=["Transition", "Self-Worth", "Growth"],
@@ -211,12 +146,41 @@ def execute_search(
                 "Consult academic counselors for systems adjustments (e.g., ADHD accommodations).",
             ],
         )
+    return insight
 
-    return SearchQueryResponse(
-        query=query_str,
-        insight=insight if lowercase_query else None,
-        results=scored_results,
-    )
+
+def _generate_match_explanation(query: str, experience: Experience) -> str:
+    """Explain why a story matches a search query (Feature 5)."""
+    lowercase_query = query.lower()
+    matched_words = []
+    
+    # Check for direct tag matches
+    for tag in (experience.emotion_tags or []):
+        if tag.lower() in lowercase_query:
+            matched_words.append(tag.lower())
+            
+    # Check for theme keyword matches
+    theme_keywords = {
+        "Career Setback": ["career", "job", "work", "placement", "interview", "startup", "fail"],
+        "Academic Challenge": ["exam", "test", "final", "study", "grade", "placement", "college", "university"],
+        "Relationship Healing": ["relationship", "heartbreak", "split", "breakup", "partner", "love"],
+        "Workplace Burnout": ["burnout", "tired", "stress", "exhausted"],
+        "Emotional Resilience": ["anxiety", "panic", "doubt", "resilience"]
+    }
+    
+    theme = experience.main_theme or "Personal Growth"
+    if theme in theme_keywords:
+        for kw in theme_keywords[theme]:
+            if kw in lowercase_query and kw not in matched_words:
+                matched_words.append(kw)
+                
+    if matched_words:
+        terms_str = ", ".join(list(set(matched_words)))
+        return f"Matched because this story discusses {terms_str} and themes of {theme.lower()}."
+    else:
+        topics = [experience.primary_emotion] + (experience.secondary_emotions or [])
+        topics_str = ", ".join([t.lower().replace("_", " ") for t in topics if t][:3])
+        return f"Matched because this story discusses {topics_str or 'personal growth'}."
 
 
 @router.get(
@@ -277,21 +241,21 @@ def get_most_searched_topics(
 
 @router.post(
     "/semantic",
-    response_model=List[SearchResultItem],
+    response_model=SearchQueryResponse,
     summary="Semantic search public experiences",
 )
 def semantic_search(
     search_in: SearchQuery,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
-) -> List[SearchResultItem]:
+) -> SearchQueryResponse:
     """Execute semantic query matching against ChromaDB vector collection.
-
-    Logged-in users have search limits validated.
+    
+    Incorporate limits, query logs, strict result deduplication, and dynamic matching explanations.
     """
     query_str = search_in.query.strip()
     if not query_str:
-        return []
+        return SearchQueryResponse(query=query_str, results=[])
 
     # Enforce search limits for logged in users
     if current_user:
@@ -318,10 +282,12 @@ def semantic_search(
         current_user.daily_search_count += 1
         db.commit()
 
+    insight = _generate_query_insight(query_str)
+
     try:
         from app.services.ai.vector_service import vector_service
         # Fetch matching documents from ChromaDB
-        results = vector_service.search_similar(query_str, n_results=5)
+        results = vector_service.search_similar(query_str, n_results=10)
         
         # Resolve DB records
         experience_ids = [res["experience_id"] for res in results]
@@ -334,19 +300,77 @@ def semantic_search(
         record_map = {rec.id: rec for rec in db_records}
         
         output = []
+        seen_ids = set()
         for res in results:
             exp_id = res["experience_id"]
-            if exp_id in record_map:
+            if exp_id in record_map and exp_id not in seen_ids:
+                seen_ids.add(exp_id)
+                exp = record_map[exp_id]
+                explanation = _generate_match_explanation(query_str, exp)
                 output.append(
                     SearchResultItem(
                         experience=_serialize_experience(
-                            record_map[exp_id], 
+                            exp, 
                             current_user_id=current_user.id if current_user else None
                         ),
-                        score=res["score"]
+                        score=res["score"],
+                        explanation=explanation
                     )
                 )
-        return output
+        return SearchQueryResponse(query=query_str, insight=insight, results=output)
+
     except Exception as e:
-        logger.error(f"Semantic search failed: {e}")
-        return []
+        logger.error(f"Semantic search failed, running keyword fallback: {e}")
+        # Keyword Fallback Search
+        lowercase_query = query_str.lower()
+        results_pool = (
+            db.query(Experience)
+            .filter(Experience.privacy == PrivacyLevel.PUBLIC)
+            .all()
+        )
+
+        scored_results = []
+        seen_ids = set()
+        for exp in results_pool:
+            if exp.id in seen_ids:
+                continue
+                
+            score = 0.2  # Base score
+            
+            # Tags matching
+            for tag in exp.emotion_tags:
+                if tag.lower() in lowercase_query:
+                    score += 0.25
+
+            # Keywords matching
+            if "startup" in lowercase_query and "startup" in exp.content.lower():
+                score += 0.3
+            if "fail" in lowercase_query and ("fail" in exp.content.lower() or "fail" in exp.title.lower()):
+                score += 0.25
+            if "code" in lowercase_query and "coding" in exp.content.lower():
+                score += 0.35
+            if "job" in lowercase_query and "job" in exp.content.lower():
+                score += 0.2
+            if "love" in lowercase_query or "heartbreak" in lowercase_query or "relationship" in lowercase_query:
+                if "relationship" in exp.content.lower() or "heartbreak" in exp.content.lower() or "separate" in exp.content.lower():
+                    score += 0.35
+            if "exam" in lowercase_query or "college" in lowercase_query or "school" in lowercase_query:
+                if "exam" in exp.content.lower() or "academic" in exp.content.lower() or "university" in exp.content.lower():
+                    score += 0.4
+
+            # Add organic small factor
+            score = min(0.98, score + (random.random() * 0.05))
+
+            if not lowercase_query or score > 0.3:
+                seen_ids.add(exp.id)
+                explanation = _generate_match_explanation(query_str, exp)
+                scored_results.append(
+                    SearchResultItem(
+                        experience=_serialize_experience(exp, current_user.id if current_user else None),
+                        score=score,
+                        explanation=explanation
+                    )
+                )
+
+        scored_results.sort(key=lambda r: r.score, reverse=True)
+        return SearchQueryResponse(query=query_str, insight=insight, results=scored_results)

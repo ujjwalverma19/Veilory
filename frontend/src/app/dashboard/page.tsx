@@ -516,14 +516,11 @@ export default function Dashboard() {
               ) : filteredRecs.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {filteredRecs.map(({ experience, reason }) => (
-                    <div key={experience.id} className="space-y-2.5">
-                      {/* Reason indicator badge */}
-                      <div className="flex items-center gap-1.5 pl-2 text-[10px] font-semibold text-[#1a1a1a]/45 uppercase tracking-wide">
-                        <Sparkles className="w-3 h-3 text-[#1a1a1a]/40" />
-                        <span>{reason}</span>
-                      </div>
-                      <ExperienceCard experience={experience} />
-                    </div>
+                    <ExperienceCard 
+                      key={experience.id} 
+                      experience={experience} 
+                      recommendationReason={reason} 
+                    />
                   ))}
                 </div>
               ) : (

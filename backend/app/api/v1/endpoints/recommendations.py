@@ -48,6 +48,16 @@ def _serialize_experience(
         secondary_emotions=experience.secondary_emotions or [],
         emotion_confidence=experience.emotion_confidence,
         embedding_reference_id=experience.embedding_reference_id,
+        main_theme=experience.main_theme,
+        theme_confidence=experience.theme_confidence,
+        why_matters=experience.why_matters,
+        short_summary=experience.short_summary,
+        medium_summary=experience.medium_summary,
+        key_lesson=experience.key_lesson,
+        lessons_learned=experience.lessons_learned or [],
+        emotion_initial=experience.emotion_initial,
+        emotion_catalyst=experience.emotion_catalyst,
+        emotion_outcome=experience.emotion_outcome,
     )
 
 
@@ -65,7 +75,7 @@ def get_recommendations(
 ) -> List[RecommendedExperienceResponse]:
     """Retrieve up to 4 personalized story recommendations based on user activity.
 
-    Uses user interests, search history keywords, and viewed tag arrays.
+    Uses user interests, search history keywords, and viewed tag arrays with combined reasons and strict deduplication.
     """
     # 1. Filter out user's own stories and private ones
     pool = (
@@ -104,41 +114,39 @@ def get_recommendations(
             viewed_tags.add(tag.lower())
 
     recommendations = []
+    seen_ids = set()
 
     for exp in pool:
+        if exp.id in seen_ids:
+            continue
+            
         score = 0.0
         reason = "Recommended for you"
 
-        # Match 1: Saved interests (highest weight)
+        # Match 1 & 2: Saved interests and Search History (Feature 6 combined check)
         matched_interest = next((t for t in exp.emotion_tags if t.lower() in interest_set), None)
-        if matched_interest:
+        matched_search = next((term for term in search_terms if any(t.lower() in term for t in exp.emotion_tags) or term in exp.title.lower()), None)
+        
+        if matched_interest and matched_search:
+            score += 15.0
+            reason = f"Recommended because you searched for \"{matched_search}\" and are interested in {matched_interest}."
+        elif matched_search:
             score += 10.0
-            reason = f"Based on your interest in {matched_interest.capitalize()}"
-
-        # Match 2: Recent searches history match
-        if score == 0.0:
-            matched_search = next((term for term in search_terms if any(t.lower() in term for t in exp.emotion_tags) or term in exp.title.lower()), None)
-            if matched_search:
-                score += 5.0
-                reason = f"Based on your recent search for \"{matched_search.capitalize()}\""
-
-        # Match 3: Reading history viewed tags match
-        if score == 0.0:
+            reason = f"Recommended because you searched for \"{matched_search}\"."
+        elif matched_interest:
+            score += 8.0
+            reason = f"Recommended because of your interest in {matched_interest}."
+        else:
+            # Match 3: Reading history viewed tags match
             matched_view_tag = next((t for t in exp.emotion_tags if t.lower() in viewed_tags), None)
             if matched_view_tag:
                 score += 3.0
-                reason = f"Because you read {matched_view_tag.capitalize()} stories"
-
-        # Match 4: Default fallback
-        if score == 0.0:
-            score = 1.0
-            if "growth" in exp.emotion_tags:
-                reason = "Curated for growth and reflection"
-            elif "lessons" in exp.emotion_tags:
-                reason = "Curated for life lessons"
+                reason = f"Recommended because you read similar {matched_view_tag} stories."
             else:
-                reason = "Recommended reading"
+                score = 1.0
+                reason = "Curated reading recommendation for your personal growth."
 
+        seen_ids.add(exp.id)
         recommendations.append(
             RecommendedExperienceResponse(
                 experience=_serialize_experience(exp, current_user.id),

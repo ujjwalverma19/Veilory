@@ -14,6 +14,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v
 export interface SearchResultItem {
   experience: Experience;
   score: number;
+  explanation?: string;
 }
 
 export interface SearchQueryResponse {
@@ -203,6 +204,12 @@ export const experienceService = {
     });
   },
 
+  getRelated: async (id: string | number): Promise<Experience[]> => {
+    return apiFetch<Experience[]>(`/experiences/${id}/related`, {
+      method: "GET",
+    });
+  },
+
   getMostViewed: async (skip = 0, limit = 20): Promise<PaginatedExperiences> => {
     return apiFetch<PaginatedExperiences>(`/experiences/analytics/most-viewed?skip=${skip}&limit=${limit}`, {
       method: "GET",
@@ -221,7 +228,7 @@ export const experienceService = {
 // ─────────────────────────────────────────────────────────────────────
 export const searchService = {
   search: async (query: string): Promise<SearchQueryResponse> => {
-    return apiFetch<SearchQueryResponse>("/search/", {
+    return apiFetch<SearchQueryResponse>("/search/semantic", {
       method: "POST",
       body: JSON.stringify({ query }),
     });

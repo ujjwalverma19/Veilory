@@ -26,10 +26,11 @@ class AIInsight(BaseModel):
 
 
 class SearchResultItem(BaseModel):
-    """A single matched experience with similarity score."""
+    """A single matched experience with similarity score and matching explanation."""
 
     experience: ExperienceResponse
     score: float
+    explanation: Optional[str] = None
 
 
 class SearchQueryResponse(BaseModel):

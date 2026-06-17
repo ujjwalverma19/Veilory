@@ -163,6 +163,18 @@ class Experience(Base):
     emotion_confidence = Column(Float, nullable=True)
     embedding_reference_id = Column(String(255), nullable=True)
 
+    # Phase 7 Additions (AI Insights & Reflection Panel)
+    main_theme = Column(String(255), nullable=True)
+    theme_confidence = Column(Float, nullable=True)
+    why_matters = Column(Text, nullable=True)
+    short_summary = Column(Text, nullable=True)
+    medium_summary = Column(Text, nullable=True)
+    key_lesson = Column(Text, nullable=True)
+    lessons_learned = Column(ARRAY(String).with_variant(SQLiteArray, "sqlite"), nullable=False, default=list)
+    emotion_initial = Column(String(100), nullable=True)
+    emotion_catalyst = Column(String(100), nullable=True)
+    emotion_outcome = Column(String(100), nullable=True)
+
     # Relationships
     author = relationship("User", back_populates="experiences")
     viewed_records = relationship(
