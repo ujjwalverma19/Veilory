@@ -5,6 +5,7 @@ import { EmotionTag } from "./EmotionTag";
 import { GlassCard } from "./GlassCard";
 import { Globe, Ghost, Lock, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 interface ExperienceCardProps {
   experience: Experience;
@@ -21,6 +22,8 @@ export function ExperienceCard({
   onDelete,
   className
 }: ExperienceCardProps) {
+  const { logViewedStory } = useAuth();
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -46,6 +49,15 @@ export function ExperienceCard({
     }
   };
 
+  const getMockMetrics = () => {
+    const seed = experience.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const readers = (seed % 140) + 15;
+    const helpful = Math.max(1, Math.round(readers * (0.2 + (seed % 20) / 100)));
+    return { readers, helpful };
+  };
+
+  const { readers, helpful } = getMockMetrics();
+
   return (
     <GlassCard
       className={cn("flex flex-col justify-between h-full", className)}
@@ -68,7 +80,11 @@ export function ExperienceCard({
         </div>
 
         {/* Title */}
-        <Link href={`/experiences/${experience.id}`} className="group/title block">
+        <Link 
+          href={`/experiences/${experience.id}`} 
+          onClick={() => logViewedStory(experience.id)}
+          className="group/title block"
+        >
           <h3
             className="text-lg font-medium mb-3 text-[#1a1a1a] group-hover/title:text-[#1a1a1a]/70 transition-colors leading-snug"
             style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -86,7 +102,7 @@ export function ExperienceCard({
       {/* Footer */}
       <div>
         {/* Tags */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-4">
           {experience.emotion_tags.slice(0, 3).map((tag) => (
             <EmotionTag key={tag} tag={tag} />
           ))}
@@ -95,6 +111,13 @@ export function ExperienceCard({
               +{experience.emotion_tags.length - 3} more
             </span>
           )}
+        </div>
+
+        {/* Non-social Metrics */}
+        <div className="flex items-center gap-3 text-[11px] text-[#1a1a1a]/35 mb-5 pl-1.5 font-light">
+          <span>{readers} read</span>
+          <span className="text-[#1a1a1a]/20">&middot;</span>
+          <span>{helpful} found helpful</span>
         </div>
 
         {/* Author / Actions */}

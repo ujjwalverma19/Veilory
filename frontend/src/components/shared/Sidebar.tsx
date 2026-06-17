@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, PenLine, Heart, Settings, LogOut, BookOpen } from "lucide-react";
+import { LayoutDashboard, PenLine, Heart, Settings, LogOut, BookOpen, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -24,6 +24,11 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       id: "my-experiences",
       label: "My Stories",
       icon: <BookOpen className="w-4.5 h-4.5" />
+    },
+    {
+      id: "recommendations",
+      label: "Recommended",
+      icon: <Sparkles className="w-4.5 h-4.5" />
     },
     {
       id: "saved-experiences",

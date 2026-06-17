@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Sidebar } from "@/components/shared/Sidebar";
@@ -10,14 +10,26 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import {
   Heart, Globe, Ghost, Lock, AlertCircle, PlusCircle,
-  FileText
+  FileText, Search, Sparkles
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Experience } from "@/types";
+import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, experiences, deleteExperience } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isLoading,
+    experiences,
+    deleteExperience,
+    viewedStoryIds,
+    previousSearches,
+    userInterests,
+    toggleUserInterest,
+    upgradeToPremium
+  } = useAuth();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -29,6 +41,11 @@ export default function Dashboard() {
     anonCount: 0,
     privateCount: 0
   });
+
+  // State variables for recommendations filtering
+  const [recSortBy, setRecSortBy] = useState<"score" | "latest" | "oldest">("score");
+  const [recFilterType, setRecFilterType] = useState<string>("all");
+  const [recFilterEmotion, setRecFilterEmotion] = useState<string>("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -53,6 +70,100 @@ export default function Dashboard() {
       });
     }
   }, [experiences, user]);
+
+  // Mock Recommendation Logic (supporting advanced filters/sorting)
+  const recommendations = useMemo(() => {
+    // Filter out user's own stories and private ones
+    let pool = experiences.filter(
+      (e) => e.user_id !== user?.id && e.privacy === "Public"
+    );
+
+    // Apply Type Filter
+    if (recFilterType !== "all") {
+      const typeLower = recFilterType.toLowerCase();
+      pool = pool.filter((exp) =>
+        exp.emotion_tags.some((t) => t.toLowerCase() === typeLower || t.toLowerCase().includes(typeLower))
+      );
+    }
+
+    // Apply Emotion Tag Filter
+    if (recFilterEmotion !== "all") {
+      const emotionLower = recFilterEmotion.toLowerCase();
+      pool = pool.filter((exp) =>
+        exp.emotion_tags.some((t) => t.toLowerCase() === emotionLower || t.toLowerCase().includes(emotionLower))
+      );
+    }
+
+    const scoredList: { experience: Experience; reason: string; score: number }[] = [];
+    const interestSet = new Set(userInterests.map((i) => i.toLowerCase()));
+    const searchTerms = previousSearches.map((s) => s.toLowerCase());
+
+    // Gather tags from viewed stories
+    const viewedStoryTags = new Set<string>();
+    experiences
+      .filter((e) => viewedStoryIds.includes(e.id))
+      .forEach((e) => e.emotion_tags.forEach((t) => viewedStoryTags.add(t.toLowerCase())));
+
+    pool.forEach((exp) => {
+      let score = 0;
+      let reason = "Recommended for you";
+
+      // Match 1: Explicitly saved interests (highest priority)
+      const matchedInterest = exp.emotion_tags.find((t) => interestSet.has(t.toLowerCase()));
+      if (matchedInterest) {
+        score += 10;
+        reason = `Based on your interest in ${matchedInterest.charAt(0).toUpperCase() + matchedInterest.slice(1)}`;
+      }
+
+      // Match 2: Recent searches history match
+      if (score === 0) {
+        const matchedSearch = searchTerms.find((term) =>
+          exp.emotion_tags.some((t) => t.toLowerCase() === term || term.includes(t.toLowerCase())) ||
+          exp.title.toLowerCase().includes(term)
+        );
+        if (matchedSearch) {
+          score += 5;
+          reason = `Based on your recent search for "${matchedSearch.charAt(0).toUpperCase() + matchedSearch.slice(1)}"`;
+        }
+      }
+
+      // Match 3: Reading history viewed story match
+      if (score === 0) {
+        const matchedViewTag = exp.emotion_tags.find((t) => viewedStoryTags.has(t.toLowerCase()));
+        if (matchedViewTag) {
+          score += 3;
+          reason = `Because you read ${matchedViewTag.charAt(0).toUpperCase() + matchedViewTag.slice(1)} stories`;
+        }
+      }
+
+      // Match 4: Default categorization match
+      if (score === 0) {
+        score = 1;
+        if (exp.emotion_tags.includes("growth")) {
+          reason = "Curated for growth and reflection";
+        } else if (exp.emotion_tags.includes("lessons")) {
+          reason = "Curated for life lessons";
+        } else {
+          reason = "Recommended reading";
+        }
+      }
+
+      scoredList.push({ experience: exp, reason, score });
+    });
+
+    // Sort Recommendations by Score or Date
+    if (recSortBy === "score") {
+      scoredList.sort((a, b) => b.score - a.score);
+    } else {
+      scoredList.sort((a, b) => {
+        const dateA = new Date(a.experience.created_at).getTime();
+        const dateB = new Date(b.experience.created_at).getTime();
+        return recSortBy === "latest" ? dateB - dateA : dateA - dateB;
+      });
+    }
+
+    return scoredList.slice(0, 4); // Limit to top 4 cards
+  }, [experiences, user, userInterests, previousSearches, viewedStoryIds, recSortBy, recFilterType, recFilterEmotion]);
 
   const handleEdit = (id: string) => {
     router.push(`/create?edit=${id}`);
@@ -101,14 +212,22 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-8"
           >
-            <div>
-              <h1
-                className="text-2xl font-light tracking-tight text-[#1a1a1a]"
-                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-              >
-                Welcome back, {user.name}
-              </h1>
-              <p className="text-[#1a1a1a]/40 text-sm mt-1 font-light">Your personal library of experiences and reflections.</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1
+                  className="text-2xl font-light tracking-tight text-[#1a1a1a]"
+                  style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                >
+                  Welcome back, {user.name}
+                </h1>
+                <p className="text-[#1a1a1a]/40 text-sm mt-1 font-light">Your personal library of experiences and reflections.</p>
+              </div>
+
+              {user.tier === "premium" && (
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#1a1a1a] text-white uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Premium
+                </span>
+              )}
             </div>
 
             {/* Stats */}
@@ -188,20 +307,43 @@ export default function Dashboard() {
 
               {/* Side panel */}
               <div className="space-y-6">
-                <h3 className="font-medium text-[#1a1a1a]/70 text-sm border-b border-[#1a1a1a]/6 pb-3">About your library</h3>
-                <GlassCard hoverEffect={false} className="p-6 rounded-2xl space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Heart className="w-4 h-4 text-rose-300" />
-                    <div>
-                      <h4 className="text-xs font-medium text-[#1a1a1a]">Your stories matter</h4>
-                      <p className="text-[10px] text-[#1a1a1a]/35 mt-0.5">{experiences.length} experiences in the library</p>
+                <div>
+                  <h3 className="font-medium text-[#1a1a1a]/70 text-sm border-b border-[#1a1a1a]/6 pb-3">About your library</h3>
+                  <GlassCard hoverEffect={false} className="p-6 rounded-2xl space-y-4 mt-3">
+                    <div className="flex items-center gap-3">
+                      <Heart className="w-4 h-4 text-rose-300" />
+                      <div>
+                        <h4 className="text-xs font-medium text-[#1a1a1a]">Your stories matter</h4>
+                        <p className="text-[10px] text-[#1a1a1a]/35 mt-0.5">{experiences.length} experiences in the library</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-3 bg-[#1a1a1a]/3 rounded-xl border border-[#1a1a1a]/5 text-[10px] text-[#1a1a1a]/45 leading-relaxed font-light"
-                       style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                    &ldquo;Every failure carries a lesson someone else needs to hear.&rdquo;
-                  </div>
-                </GlassCard>
+                    <div className="p-3 bg-[#1a1a1a]/3 rounded-xl border border-[#1a1a1a]/5 text-[10px] text-[#1a1a1a]/45 leading-relaxed font-light"
+                         style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                      &ldquo;Every failure carries a lesson someone else needs to hear.&rdquo;
+                    </div>
+                  </GlassCard>
+                </div>
+
+                {/* Recent Searches */}
+                <div className="space-y-4">
+                  <h3 className="font-medium text-[#1a1a1a]/70 text-sm border-b border-[#1a1a1a]/6 pb-3">Recent Searches</h3>
+                  {previousSearches.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {previousSearches.map((search, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => router.push(`/explore?q=${encodeURIComponent(search)}`)}
+                          className="px-3.5 py-1.5 rounded-full border border-[#1a1a1a]/8 bg-white/40 text-[11px] text-[#1a1a1a]/55 font-medium hover:bg-white/75 hover:border-[#1a1a1a]/15 hover:text-[#1a1a1a]/85 transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Search className="w-3 h-3 text-[#1a1a1a]/30" />
+                          <span>{search}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#1a1a1a]/35 font-light pl-1">Your recent searches will appear here.</p>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -256,6 +398,152 @@ export default function Dashboard() {
           </motion.div>
         )}
 
+        {/* RECOMMENDATIONS TAB */}
+        {activeTab === "recommendations" && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
+          >
+            <div>
+              <h1
+                className="text-2xl font-light tracking-tight text-[#1a1a1a]"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+              >
+                Recommended For You
+              </h1>
+              <p className="text-[#1a1a1a]/40 text-sm mt-1 font-light">
+                Wisdom curated based on your searches, reading history, and saved interests.
+              </p>
+            </div>
+
+            {/* Interest customization toggles */}
+            <div className="bg-white/40 p-6 rounded-2xl border border-[#1a1a1a]/6 space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1a1a1a]/55">Customize Your Interests</h3>
+                <p className="text-[11px] text-[#1a1a1a]/35">Select topics you care about to personalize your library feed.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {["Lost", "Anxiety", "Motivation", "Self Doubt", "Resilience", "Confidence"].map((tag) => {
+                  const isSelected = userInterests.includes(tag.toLowerCase());
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => toggleUserInterest(tag.toLowerCase())}
+                      className={cn(
+                        "px-4 py-2 rounded-full border text-xs font-medium transition-all duration-300 cursor-pointer",
+                        isSelected
+                          ? "bg-[#1a1a1a] border-[#1a1a1a] text-white"
+                          : "border-[#1a1a1a]/10 bg-white/45 text-[#1a1a1a]/55 hover:bg-white/70 hover:border-[#1a1a1a]/20"
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Filter and Sort options for recommendations */}
+            <div className="bg-white/40 p-5 rounded-2xl border border-[#1a1a1a]/6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs">
+                
+                {/* Sort controls */}
+                <div className="space-y-2.5">
+                  <span className="block text-[10px] uppercase tracking-wider font-semibold text-[#1a1a1a]/40">Order by</span>
+                  <div className="flex bg-[#1a1a1a]/5 p-0.5 rounded-lg border border-[#1a1a1a]/6 w-fit">
+                    {[
+                      { label: "Best Match", value: "score" },
+                      { label: "Latest", value: "latest" },
+                      { label: "Oldest", value: "oldest" }
+                    ].map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => setRecSortBy(item.value as any)}
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-md font-medium transition-all cursor-pointer text-[10px]",
+                          recSortBy === item.value
+                            ? "bg-white text-[#1a1a1a] shadow-sm"
+                            : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Type controls */}
+                <div className="space-y-2.5">
+                  <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#1a1a1a]/40">Filter by Type</label>
+                  <select
+                    value={recFilterType}
+                    onChange={(e) => setRecFilterType(e.target.value)}
+                    className="bg-white/60 border border-[#1a1a1a]/8 text-[#1a1a1a]/70 rounded-xl px-3 py-1.5 outline-none font-medium cursor-pointer focus:border-[#1a1a1a]/20 w-full sm:max-w-xs text-[11px]"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="success">Success</option>
+                    <option value="failure">Failure</option>
+                    <option value="heartbreak">Heartbreak</option>
+                    <option value="career">Career</option>
+                    <option value="startup">Startup</option>
+                    <option value="growth">Growth</option>
+                    <option value="burnout">Burnout</option>
+                    <option value="life lessons">Life Lessons</option>
+                  </select>
+                </div>
+
+                {/* Emotion controls */}
+                <div className="space-y-2.5">
+                  <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#1a1a1a]/40">Filter by Emotion</label>
+                  <select
+                    value={recFilterEmotion}
+                    onChange={(e) => setRecFilterEmotion(e.target.value)}
+                    className="bg-white/60 border border-[#1a1a1a]/8 text-[#1a1a1a]/70 rounded-xl px-3 py-1.5 outline-none font-medium cursor-pointer focus:border-[#1a1a1a]/20 w-full sm:max-w-xs text-[11px]"
+                  >
+                    <option value="all">All Emotions</option>
+                    <option value="lost">Lost</option>
+                    <option value="anxiety">Anxiety</option>
+                    <option value="motivation">Motivation</option>
+                    <option value="self doubt">Self Doubt</option>
+                    <option value="resilience">Resilience</option>
+                    <option value="confidence">Confidence</option>
+                  </select>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Recommended Feed */}
+            <div className="space-y-6">
+              <h3 className="font-medium text-[#1a1a1a]/70 text-sm border-b border-[#1a1a1a]/6 pb-3">Curated Stories</h3>
+              {recommendations.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {recommendations.map(({ experience, reason }) => (
+                    <div key={experience.id} className="space-y-2.5">
+                      {/* Reason indicator badge */}
+                      <div className="flex items-center gap-1.5 pl-2 text-[10px] font-semibold text-[#1a1a1a]/45 uppercase tracking-wide">
+                        <Sparkles className="w-3 h-3 text-[#1a1a1a]/40" />
+                        <span>{reason}</span>
+                      </div>
+                      <ExperienceCard experience={experience} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white/40 p-12 rounded-2xl text-center border border-[#1a1a1a]/6 space-y-4 max-w-md mx-auto">
+                  <AlertCircle className="w-8 h-8 text-[#1a1a1a]/20 mx-auto" />
+                  <div>
+                    <h4 className="font-medium text-[#1a1a1a]/70">No matching recommendations</h4>
+                    <p className="text-xs text-[#1a1a1a]/35 mt-1">Try resetting the filters or selecting different interests above to find matching stories.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {/* SAVED EXPERIENCES TAB */}
         {activeTab === "saved-experiences" && (
           <motion.div
@@ -277,8 +565,8 @@ export default function Dashboard() {
               <ExperienceCard
                 experience={{
                   id: "exp-3-saved",
-                  title: "Left a high-paying job because I hated coding",
-                  content: "On paper, I had it all. $250k salary, great perks, working on a famous team. But every single morning, I woke up with dread. I hated sitting in front of JIRA tickets all day. I felt guilty because others would kill for my job...",
+                  title: "Left a high-paying FAANG job because I hated coding",
+                  content: "On paper, I had it all. $250k salary, great perks, working on a famous team. But every single morning, I woke up with dread. I hated sitting in front of JIRA tickets all day. I felt guilty because others would kill for my job. I finally quit to become a product designer. My income halved initially, but my sleep, digestion, and creativity returned. Don't trap yourself in a golden cage just because of society's definitions of success.",
                   emotion_tags: ["career", "lost", "burnout", "growth"],
                   privacy: "Public",
                   user_id: "user-gamma",
@@ -310,6 +598,35 @@ export default function Dashboard() {
 
             <GlassCard hoverEffect={false} className="p-8 rounded-2xl space-y-6">
               <div className="space-y-4">
+                {/* Account Type Tier (Extensible for Premium) */}
+                <div className="p-4 rounded-xl bg-[#1a1a1a]/4 border border-[#1a1a1a]/6 flex items-center justify-between text-sm">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-[#1a1a1a]">Account Type</h4>
+                    <p className="text-[10px] text-[#1a1a1a]/35">Your current subscription level.</p>
+                  </div>
+                  <div>
+                    {user.tier === "premium" ? (
+                      <span className="px-3 py-1.5 rounded-full text-[10px] font-bold bg-[#1a1a1a] text-white uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Premium
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1.5 rounded-full text-[10px] font-bold bg-[#1a1a1a]/10 text-[#1a1a1a]/70 uppercase tracking-wider">
+                          Free Account
+                        </span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={upgradeToPremium}
+                          className="text-[10px] font-bold text-[#1a1a1a] hover:bg-[#1a1a1a]/5 px-3 py-1.5 border border-[#1a1a1a]/10 cursor-pointer"
+                        >
+                          Upgrade
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-medium uppercase tracking-wider text-[#1a1a1a]/50 pl-1">Name</label>
                   <input

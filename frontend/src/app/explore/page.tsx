@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { simulateSearch, TRENDING_EMOTIONS } from "@/lib/mockData";
@@ -8,14 +8,22 @@ import { SearchResult, AIInsight } from "@/types";
 import { ExperienceCard } from "@/components/ui/ExperienceCard";
 import { EmotionTag } from "@/components/ui/EmotionTag";
 import { Button } from "@/components/ui/Button";
-import { Search, BookOpen, AlertCircle, Lightbulb, TrendingUp } from "lucide-react";
+import { Search, BookOpen, AlertCircle, Lightbulb, TrendingUp, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 function ExploreForm() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
 
-  const { experiences } = useAuth();
+  const {
+    experiences,
+    searchesRemaining,
+    searchLimit,
+    attemptSearch,
+    incrementSearchCount,
+    logSearchQuery
+  } = useAuth();
 
   const [query, setQuery] = useState(initialQuery);
   const [activeSearchQuery, setActiveSearchQuery] = useState(initialQuery);
@@ -24,10 +32,17 @@ function ExploreForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
 
+  // Advanced Filtering State
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<"latest" | "oldest">("latest");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterEmotion, setFilterEmotion] = useState<string>("all");
+
   useEffect(() => {
     if (initialQuery) {
       setQuery(initialQuery);
       setSelectedTag(initialQuery);
+      // Run the initial search directly, since redirect checking occurred on landing page
       performSearch(initialQuery);
     } else {
       performSearch("");
@@ -53,15 +68,27 @@ function ExploreForm() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSelectedTag("");
-    performSearch(query);
+    if (attemptSearch()) {
+      incrementSearchCount();
+      logSearchQuery(query);
+      setSelectedTag("");
+      performSearch(query);
+    }
   };
 
   const handleTagClick = (tag: string) => {
     const nextTag = selectedTag === tag ? "" : tag;
     setSelectedTag(nextTag);
     setQuery(nextTag);
-    performSearch(nextTag);
+    if (nextTag) {
+      if (attemptSearch()) {
+        incrementSearchCount();
+        logSearchQuery(nextTag);
+        performSearch(nextTag);
+      }
+    } else {
+      performSearch("");
+    }
   };
 
   const handleClear = () => {
@@ -70,8 +97,42 @@ function ExploreForm() {
     performSearch("");
   };
 
+  // Filter and sort results based on user preferences
+  const filteredAndSortedResults = useMemo(() => {
+    let list = [...searchResults];
+
+    // 1. Filter by Type
+    if (filterType !== "all") {
+      const typeLower = filterType.toLowerCase();
+      list = list.filter((res) =>
+        res.experience.emotion_tags.some(
+          (t) => t.toLowerCase() === typeLower || t.toLowerCase().includes(typeLower)
+        )
+      );
+    }
+
+    // 2. Filter by Emotion Tag
+    if (filterEmotion !== "all") {
+      const emotionLower = filterEmotion.toLowerCase();
+      list = list.filter((res) =>
+        res.experience.emotion_tags.some(
+          (t) => t.toLowerCase() === emotionLower || t.toLowerCase().includes(emotionLower)
+        )
+      );
+    }
+
+    // 3. Sort by Time
+    list.sort((a, b) => {
+      const dateA = new Date(a.experience.created_at).getTime();
+      const dateB = new Date(b.experience.created_at).getTime();
+      return sortBy === "latest" ? dateB - dateA : dateA - dateB;
+    });
+
+    return list;
+  }, [searchResults, sortBy, filterType, filterEmotion]);
+
   return (
-    <div className="py-6 max-w-5xl mx-auto space-y-12">
+    <div className="py-6 max-w-5xl mx-auto space-y-8">
 
       {/* Header */}
       <div className="text-center space-y-4 max-w-2xl mx-auto">
@@ -106,36 +167,133 @@ function ExploreForm() {
         </div>
       </div>
 
-      {/* Search */}
-      <form onSubmit={handleSearchSubmit} className="relative w-full">
-        <div className="relative bg-white/50 backdrop-blur-sm rounded-2xl flex items-center p-2.5 border border-[#1a1a1a]/8 hover:border-[#1a1a1a]/15 focus-within:border-[#1a1a1a]/20 transition-all shadow-[0_2px_20px_rgba(0,0,0,0.03)]">
-          <Search className="w-5 h-5 text-[#1a1a1a]/25 ml-4 shrink-0" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by feelings... e.g., 'I quit my job and regret it'"
-            className="w-full bg-transparent border-none py-3 px-4 outline-none text-[#1a1a1a] placeholder:text-[#1a1a1a]/25 text-sm md:text-base font-normal"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-xs font-medium text-[#1a1a1a]/35 hover:text-[#1a1a1a]/60 mr-3 px-2 py-1 rounded bg-[#1a1a1a]/5 cursor-pointer"
+      {/* Search Input and Daily Limit */}
+      <div className="space-y-3">
+        <form onSubmit={handleSearchSubmit} className="relative w-full">
+          <div className="relative bg-white/50 backdrop-blur-sm rounded-2xl flex items-center p-2.5 border border-[#1a1a1a]/8 hover:border-[#1a1a1a]/15 focus-within:border-[#1a1a1a]/20 transition-all shadow-[0_2px_20px_rgba(0,0,0,0.03)]">
+            <Search className="w-5 h-5 text-[#1a1a1a]/25 ml-4 shrink-0" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by feelings... e.g., 'I failed my exams'"
+              className="w-full bg-transparent border-none py-3 px-4 outline-none text-[#1a1a1a] placeholder:text-[#1a1a1a]/25 text-sm md:text-base font-normal"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="text-xs font-medium text-[#1a1a1a]/35 hover:text-[#1a1a1a]/60 mr-3 px-2 py-1 rounded bg-[#1a1a1a]/5 cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              className="shrink-0"
             >
-              Clear
-            </button>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            className="shrink-0"
+              Search
+            </Button>
+          </div>
+        </form>
+
+        <div className="flex items-center justify-between px-2 text-[10px] text-[#1a1a1a]/45 font-medium tracking-wide uppercase">
+          <span>
+            {searchLimit === Infinity 
+              ? "Unlimited searches remaining today" 
+              : `${searchesRemaining} of ${searchLimit} searches remaining today`}
+          </span>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1.5 text-[10px] text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors font-medium tracking-wider uppercase cursor-pointer"
           >
-            Search
-          </Button>
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            {showFilters ? "Hide Filters" : "Filter & Sort"}
+          </button>
         </div>
-      </form>
+      </div>
+
+      {/* Advanced Filtering controls */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white/40 p-5 rounded-2xl border border-[#1a1a1a]/6"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs">
+              
+              {/* Sort controls */}
+              <div className="space-y-2.5">
+                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[#1a1a1a]/40">Order by Time</span>
+                <div className="flex bg-[#1a1a1a]/5 p-0.5 rounded-lg border border-[#1a1a1a]/6 w-fit">
+                  {[
+                    { label: "Latest", value: "latest" },
+                    { label: "Oldest", value: "oldest" }
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setSortBy(item.value as any)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-md font-medium transition-all cursor-pointer text-[11px]",
+                        sortBy === item.value
+                          ? "bg-white text-[#1a1a1a] shadow-sm"
+                          : "text-[#1a1a1a]/45 hover:text-[#1a1a1a]/70"
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Type controls */}
+              <div className="space-y-2.5">
+                <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#1a1a1a]/40">Filter by Type</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="bg-white/60 border border-[#1a1a1a]/8 text-[#1a1a1a]/70 rounded-xl px-3.5 py-2 outline-none font-medium cursor-pointer focus:border-[#1a1a1a]/20 w-full sm:max-w-xs text-xs"
+                >
+                  <option value="all">All Types</option>
+                  <option value="success">Success</option>
+                  <option value="failure">Failure</option>
+                  <option value="heartbreak">Heartbreak</option>
+                  <option value="career">Career</option>
+                  <option value="startup">Startup</option>
+                  <option value="growth">Growth</option>
+                  <option value="burnout">Burnout</option>
+                  <option value="life lessons">Life Lessons</option>
+                </select>
+              </div>
+
+              {/* Emotion controls */}
+              <div className="space-y-2.5">
+                <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#1a1a1a]/40">Filter by Emotion</label>
+                <select
+                  value={filterEmotion}
+                  onChange={(e) => setFilterEmotion(e.target.value)}
+                  className="bg-white/60 border border-[#1a1a1a]/8 text-[#1a1a1a]/70 rounded-xl px-3.5 py-2 outline-none font-medium cursor-pointer focus:border-[#1a1a1a]/20 w-full sm:max-w-xs text-xs"
+                >
+                  <option value="all">All Emotions</option>
+                  <option value="lost">Lost</option>
+                  <option value="anxiety">Anxiety</option>
+                  <option value="motivation">Motivation</option>
+                  <option value="self doubt">Self Doubt</option>
+                  <option value="resilience">Resilience</option>
+                  <option value="confidence">Confidence</option>
+                </select>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Results */}
       <div className="space-y-10">
@@ -171,7 +329,7 @@ function ExploreForm() {
               className="space-y-12"
             >
               {/* Insight Panel */}
-              {aiInsight && searchResults.length > 0 && (
+              {aiInsight && filteredAndSortedResults.length > 0 && (
                 <div className="relative rounded-2xl p-8 md:p-10 border border-[#1a1a1a]/6 bg-white/50 backdrop-blur-sm overflow-hidden">
                   <div className="space-y-6">
                     {/* Header */}
@@ -187,7 +345,7 @@ function ExploreForm() {
                           Reflections from similar experiences
                         </h2>
                         <p className="text-[10px] text-[#1a1a1a]/35 font-medium uppercase tracking-wider mt-0.5">
-                          Drawing from {searchResults.length} stories
+                          Drawing from {filteredAndSortedResults.length} stories
                         </p>
                       </div>
                     </div>
@@ -237,15 +395,15 @@ function ExploreForm() {
               <div className="space-y-6">
                 {activeSearchQuery && (
                   <h3 className="text-[11px] font-medium uppercase tracking-wider text-[#1a1a1a]/35 border-b border-[#1a1a1a]/6 pb-3">
-                    {searchResults.length > 0
-                      ? `Related experiences (${searchResults.length})`
+                    {filteredAndSortedResults.length > 0
+                      ? `Related experiences (${filteredAndSortedResults.length})`
                       : "No matching experiences found"}
                   </h3>
                 )}
 
-                {searchResults.length > 0 ? (
+                {filteredAndSortedResults.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {searchResults.map((res) => (
+                    {filteredAndSortedResults.map((res) => (
                       <ExperienceCard
                         key={res.experience.id}
                         experience={res.experience}
@@ -258,7 +416,7 @@ function ExploreForm() {
                     <AlertCircle className="w-10 h-10 text-[#1a1a1a]/20 mx-auto" />
                     <h4 className="font-medium text-lg text-[#1a1a1a]/80" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>No stories found</h4>
                     <p className="text-sm text-[#1a1a1a]/40 leading-relaxed">
-                      We couldn&apos;t find experiences matching that feeling yet.
+                      We couldn&apos;t find experiences matching the active query and filters.
                     </p>
                     <Button variant="secondary" size="sm" onClick={handleClear}>
                       Reset search

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Experience, PrivacyLevel } from "@/types";
 import { INITIAL_EXPERIENCES } from "@/lib/mockData";
+import { SearchLimitModal } from "@/components/ui/SearchLimitModal";
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +16,26 @@ interface AuthContextType {
   addExperience: (title: string, content: string, tags: string[], privacy: PrivacyLevel) => Promise<Experience>;
   updateExperience: (id: string, title: string, content: string, tags: string[], privacy: PrivacyLevel) => Promise<Experience>;
   deleteExperience: (id: string) => Promise<boolean>;
+
+  // Search limit & Premium states
+  searchCount: number;
+  searchLimit: number;
+  searchesRemaining: number;
+  incrementSearchCount: () => boolean;
+  attemptSearch: () => boolean;
+  showLimitModal: boolean;
+  setShowLimitModal: (show: boolean) => void;
+  limitModalType: "guest" | "user" | null;
+  setLimitModalType: (type: "guest" | "user" | null) => void;
+  upgradeToPremium: () => Promise<void>;
+
+  // Personalization, views & history tracking states
+  viewedStoryIds: string[];
+  previousSearches: string[];
+  userInterests: string[];
+  logViewedStory: (id: string) => void;
+  logSearchQuery: (query: string) => void;
+  toggleUserInterest: (interest: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,7 +45,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize from localStorage on mount
+  // Search limit states
+  const [searchCount, setSearchCount] = useState(0);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitModalType, setLimitModalType] = useState<"guest" | "user" | null>(null);
+
+  // Personalization states
+  const [viewedStoryIds, setViewedStoryIds] = useState<string[]>([]);
+  const [previousSearches, setPreviousSearches] = useState<string[]>([]);
+  const [userInterests, setUserInterests] = useState<string[]>([]);
+
+  const getLimit = () => {
+    if (!user) return 10;
+    if (user.tier === "premium") return Infinity;
+    return 50;
+  };
+
+  const limit = getLimit();
+  const searchesRemaining = limit === Infinity ? Infinity : Math.max(0, limit - searchCount);
+
+  // Initialize from localStorage on mount & sync when user changes
   useEffect(() => {
     const storedUser = localStorage.getItem("veilory_user");
     const storedExps = localStorage.getItem("veilory_experiences");
@@ -43,18 +83,123 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-CA');
+    const userPrefix = user ? `user_${user.id}` : "guest";
+    
+    // 1. Load search count for today
+    const limitKey = `veilory_${userPrefix}_searches`;
+    const storedLimitStr = localStorage.getItem(limitKey);
+    if (storedLimitStr) {
+      const parsed = JSON.parse(storedLimitStr);
+      if (parsed.date === today) {
+        setSearchCount(parsed.count);
+      } else {
+        setSearchCount(0);
+        localStorage.setItem(limitKey, JSON.stringify({ date: today, count: 0 }));
+      }
+    } else {
+      setSearchCount(0);
+      localStorage.setItem(limitKey, JSON.stringify({ date: today, count: 0 }));
+    }
+
+    // 2. Load viewed story history
+    const viewsKey = `veilory_${userPrefix}_viewed_stories`;
+    const storedViews = localStorage.getItem(viewsKey);
+    setViewedStoryIds(storedViews ? JSON.parse(storedViews) : []);
+
+    // 3. Load search history
+    const historyKey = `veilory_${userPrefix}_searches_history`;
+    const storedHistory = localStorage.getItem(historyKey);
+    setPreviousSearches(storedHistory ? JSON.parse(storedHistory) : []);
+
+    // 4. Load interests
+    const interestsKey = `veilory_${userPrefix}_interests`;
+    const storedInterests = localStorage.getItem(interestsKey);
+    setUserInterests(storedInterests ? JSON.parse(storedInterests) : []);
+  }, [user]);
+
+  const attemptSearch = (): boolean => {
+    const currentLimit = getLimit();
+    if (searchCount >= currentLimit) {
+      setLimitModalType(user ? "user" : "guest");
+      setShowLimitModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  const incrementSearchCount = (): boolean => {
+    const today = new Date().toLocaleDateString('en-CA');
+    const userPrefix = user ? `user_${user.id}` : "guest";
+    const limitKey = `veilory_${userPrefix}_searches`;
+    const currentLimit = getLimit();
+
+    if (searchCount >= currentLimit) {
+      setLimitModalType(user ? "user" : "guest");
+      setShowLimitModal(true);
+      return false;
+    }
+
+    const newCount = searchCount + 1;
+    setSearchCount(newCount);
+    localStorage.setItem(limitKey, JSON.stringify({ date: today, count: newCount }));
+    return true;
+  };
+
+  const upgradeToPremium = async () => {
+    if (!user) return;
+    const upgradedUser: User = { ...user, tier: "premium" };
+    setUser(upgradedUser);
+    localStorage.setItem("veilory_user", JSON.stringify(upgradedUser));
+  };
+
+  const logViewedStory = (id: string) => {
+    const userPrefix = user ? `user_${user.id}` : "guest";
+    const key = `veilory_${userPrefix}_viewed_stories`;
+    setViewedStoryIds(prev => {
+      if (prev.includes(id)) return prev;
+      const updated = [id, ...prev];
+      localStorage.setItem(key, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const logSearchQuery = (query: string) => {
+    if (!query.trim()) return;
+    const userPrefix = user ? `user_${user.id}` : "guest";
+    const key = `veilory_${userPrefix}_searches_history`;
+    setPreviousSearches(prev => {
+      const filtered = prev.filter(q => q.toLowerCase() !== query.toLowerCase());
+      const updated = [query, ...filtered].slice(0, 10);
+      localStorage.setItem(key, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const toggleUserInterest = (interest: string) => {
+    const userPrefix = user ? `user_${user.id}` : "guest";
+    const key = `veilory_${userPrefix}_interests`;
+    setUserInterests(prev => {
+      const updated = prev.includes(interest)
+        ? prev.filter(i => i !== interest)
+        : [...prev, interest];
+      localStorage.setItem(key, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Simple mock check
     if (email && password.length >= 8) {
       const mockUser: User = {
         id: "user-alpha",
         email: email,
         name: email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1),
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        tier: "free"
       };
       setUser(mockUser);
       localStorage.setItem("veilory_user", JSON.stringify(mockUser));
@@ -75,7 +220,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: `user-${Math.random().toString(36).substr(2, 9)}`,
         email: email,
         name: name,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        tier: "free"
       };
       setUser(mockUser);
       localStorage.setItem("veilory_user", JSON.stringify(mockUser));
@@ -179,10 +325,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         addExperience,
         updateExperience,
-        deleteExperience
+        deleteExperience,
+        searchCount,
+        searchLimit: limit,
+        searchesRemaining,
+        incrementSearchCount,
+        attemptSearch,
+        showLimitModal,
+        setShowLimitModal,
+        limitModalType,
+        setLimitModalType,
+        upgradeToPremium,
+        viewedStoryIds,
+        previousSearches,
+        userInterests,
+        logViewedStory,
+        logSearchQuery,
+        toggleUserInterest
       }}
     >
       {children}
+      <SearchLimitModal />
     </AuthContext.Provider>
   );
 }
