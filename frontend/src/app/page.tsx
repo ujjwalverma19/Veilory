@@ -145,15 +145,15 @@ export default function Home() {
             loop
             playsInline
             preload="metadata"
-            className="w-full h-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           >
-            <source src="/videos/videoplayback.mp4" type="video/mp4" />
+            <source src="https://res.cloudinary.com/dlhxpwnth/video/upload/v1781689612/0617_dhfg0l.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
 
         {/* Soft white readability overlay above the video (further reduced opacity & blur) */}
-        <div className="fixed inset-0 w-screen h-screen bg-white/30 backdrop-blur-[0.5px] -z-10 pointer-events-none" />
+        <div className="fixed inset-0 w-screen h-screen bg-black/30 backdrop-blur-[0.5px] -z-10 pointer-events-none" />
 
         {/* ═══════════════════════════════════════════════════════
             HERO — vertically centered, immersive, floating in space
