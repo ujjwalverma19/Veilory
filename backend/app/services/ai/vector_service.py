@@ -22,20 +22,30 @@ CHROMA_DB_DIR = os.path.join(
 
 class VectorService:
     def __init__(self) -> None:
-        # Create directory if absent
-        os.makedirs(CHROMA_DB_DIR, exist_ok=True)
-        self.client = chromadb.PersistentClient(path=CHROMA_DB_DIR)
+        self.client = None
+        self.experiences_col = None
+        self.recommendations_col = None
+        self.is_ready = False
         
-        # Configure collections with Cosine Similarity metric
-        self.experiences_col = self.client.get_or_create_collection(
-            name="experiences",
-            metadata={"hnsw:space": "cosine"}
-        )
-        self.recommendations_col = self.client.get_or_create_collection(
-            name="recommendations",
-            metadata={"hnsw:space": "cosine"}
-        )
-        logger.info(f"Vector Database collections initialized at: {CHROMA_DB_DIR}")
+        try:
+            # Create directory if absent
+            os.makedirs(CHROMA_DB_DIR, exist_ok=True)
+            self.client = chromadb.PersistentClient(path=CHROMA_DB_DIR)
+            
+            # Configure collections with Cosine Similarity metric
+            self.experiences_col = self.client.get_or_create_collection(
+                name="experiences",
+                metadata={"hnsw:space": "cosine"}
+            )
+            self.recommendations_col = self.client.get_or_create_collection(
+                name="recommendations",
+                metadata={"hnsw:space": "cosine"}
+            )
+            logger.info(f"Vector Database collections initialized at: {CHROMA_DB_DIR}")
+            self.is_ready = True
+        except Exception as e:
+            logger.error(f"Failed to initialize ChromaDB collections at {CHROMA_DB_DIR}: {e}. Vector database features will be disabled.")
+            self.is_ready = False
 
     def index_experience(
         self,
@@ -46,6 +56,8 @@ class VectorService:
         secondary_emotions: List[str]
     ) -> str:
         """Embed and index/upsert an experience in experiences and recommendations collections."""
+        if not self.is_ready or not self.experiences_col or not self.recommendations_col:
+            raise RuntimeError("ChromaDB vector database service is not available.")
         # Generate the dense representation
         text_to_embed = f"Title: {title}\nContent: {content}"
         embedding = embedding_service.generate_embedding(text_to_embed)
@@ -80,6 +92,8 @@ class VectorService:
 
     def delete_experience(self, experience_id: int) -> None:
         """Remove an experience from both collections."""
+        if not self.is_ready or not self.experiences_col or not self.recommendations_col:
+            raise RuntimeError("ChromaDB vector database service is not available.")
         doc_id = str(experience_id)
         try:
             self.experiences_col.delete(ids=[doc_id])
@@ -90,6 +104,8 @@ class VectorService:
 
     def search_similar(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """Run similarity queries on the experiences vector collection."""
+        if not self.is_ready or not self.experiences_col:
+            raise RuntimeError("ChromaDB vector database service is not available.")
         query_embedding = embedding_service.generate_embedding(query)
         
         query_res = self.experiences_col.query(
@@ -119,6 +135,8 @@ class VectorService:
 
     def find_related(self, experience_id: int, n_results: int = 2) -> List[Dict[str, Any]]:
         """Retrieve experiences that are semantically closest to a source experience."""
+        if not self.is_ready or not self.experiences_col:
+            raise RuntimeError("ChromaDB vector database service is not available.")
         doc_id = str(experience_id)
         
         # 1. Retrieve the source story vector from the collection

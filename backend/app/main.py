@@ -30,6 +30,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("veilory")
 
+logger.info("Initializing Veilory backend application...")
+logger.info("Configuration loaded. Project name: %s", settings.PROJECT_NAME)
+logger.info("Database connection factory (SQLAlchemy engine) prepared.")
 
 # ── Application ──────────────────────────────────────────────────────
 
@@ -48,6 +51,8 @@ app = FastAPI(
 
 # ── Middleware ───────────────────────────────────────────────────────
 
+logger.info("Loading middleware: CORS and Security Headers...")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -60,6 +65,7 @@ app.add_middleware(
 from app.middleware.security_headers import SecurityHeadersMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
 
+logger.info("Middleware loaded successfully.")
 
 # ── Global Exception Handler ────────────────────────────────────────
 
@@ -80,7 +86,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # ── Routes ───────────────────────────────────────────────────────────
 
+logger.info("Registering versioned API routers...")
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+logger.info("API routers registered successfully.")
+logger.info("Veilory backend application initialization completed.")
 
 
 @app.get("/", tags=["Root"])
@@ -105,6 +116,10 @@ def startup_db_setup():
     
     Production PostgreSQL uses Alembic migrations.
     """
+    logger.info("Executing startup event handlers...")
     if settings.SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
+        logger.info("SQLite database detected. Running metadata creation...")
         from app.db.database import Base, engine
         Base.metadata.create_all(bind=engine)
+        logger.info("SQLite tables verified/created.")
+    logger.info("Veilory backend startup events completed successfully.")
