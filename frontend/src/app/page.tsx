@@ -138,22 +138,21 @@ export default function Home() {
         {/* ═══════════════════════════════════════════════════════
             FULL VIEWPORT BACKGROUND VIDEO
         ═══════════════════════════════════════════════════════ */}
-        <div className="fixed inset-0 w-screen h-screen overflow-hidden -z-20">
+        <div className="fixed inset-0 overflow-hidden z-0">
           <video
             autoPlay
             muted
             loop
             playsInline
-            preload="metadata"
-            className="absolute inset-0 h-full w-full object-cover"
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover"
           >
             <source src="https://res.cloudinary.com/dlhxpwnth/video/upload/v1781689612/0617_dhfg0l.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
 
-        {/* Soft white readability overlay above the video (further reduced opacity & blur) */}
-        <div className="fixed inset-0 w-screen h-screen bg-black/30 backdrop-blur-[0.5px] -z-10 pointer-events-none" />
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-[0.5px] z-10 pointer-events-none" />
 
         {/* ═══════════════════════════════════════════════════════
             HERO — vertically centered, immersive, floating in space
