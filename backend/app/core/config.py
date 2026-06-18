@@ -50,6 +50,22 @@ class Settings(BaseSettings):
     # ─── Feature Flags ───────────────────────────────────────────────────────
     USE_COOKIE_AUTH: bool = False
 
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        """Construct the connection string. Fallback to SQLite for local development."""
+        import os
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            if db_url.startswith("postgres://"):
+                db_url = db_url.replace("postgres://", "postgresql://", 1)
+            return db_url
+        if self.USE_SQLITE and not os.getenv("RENDER"):
+            return "sqlite:///veilory.db"
+        return (
+            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
 
 
     # ─── JWT Authentication ──────────────────────────────────────────

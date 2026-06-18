@@ -56,9 +56,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-    # Add security headers middleware
-    from app.middleware.security_headers import SecurityHeadersMiddleware
-    app.add_middleware(SecurityHeadersMiddleware)
+# Add security headers middleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # ── Global Exception Handler ────────────────────────────────────────

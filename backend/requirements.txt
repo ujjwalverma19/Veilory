@@ -10,6 +10,7 @@ uvicorn[standard]==0.34.3
 sqlalchemy==2.0.40
 psycopg2-binary==2.9.10
 alembic==1.15.2
+chromadb==1.5.9
 
 # Data Validation
 pydantic==2.11.3
