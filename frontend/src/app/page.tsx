@@ -139,17 +139,20 @@ export default function Home() {
             FULL VIEWPORT BACKGROUND VIDEO
         ═══════════════════════════════════════════════════════ */}
         <div className="fixed inset-0 overflow-hidden z-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src="https://res.cloudinary.com/dlhxpwnth/video/upload/v1781689612/0617_dhfg0l.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+<video
+autoPlay
+muted
+loop
+playsInline
+preload="auto"
+className="absolute inset-0 w-full h-full object-cover"
+
+>
+
+<source
+ src="https://res.cloudinary.com/dlhxpwnth/video/upload/v1781689612/0617_dhfg0l.mp4"
+ type="video/mp4"
+/> </video>
         </div>
 
         <div className="fixed inset-0 bg-black/30 backdrop-blur-[0.5px] z-10 pointer-events-none" />
