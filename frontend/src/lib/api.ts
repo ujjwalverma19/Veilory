@@ -8,7 +8,15 @@ import {
 } from "@/types";
 
 // Base API URL config
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const getBaseUrl = () => {
+  let url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  if (url.endsWith("/")) {
+    url = url.slice(0, -1);
+  }
+  return url.includes("/api/v1") ? url : `${url}/api/v1`;
+};
+
+const BASE_URL = getBaseUrl();
 
 // TypeScript Contracts for Search & Recommendation API responses
 export interface SearchResultItem {
