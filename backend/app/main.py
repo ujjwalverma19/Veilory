@@ -15,7 +15,8 @@ Design decisions:
 
 import logging
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, Response, status, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -71,7 +72,39 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 logger.info("Middleware loaded successfully.")
 
-# ── Global Exception Handler ────────────────────────────────────────
+# ── Exception Handlers with CORS ─────────────────────────────────────
+
+def add_cors_headers(request: Request, response: JSONResponse) -> JSONResponse:
+    origin = request.headers.get("origin")
+    allowed_origins = {
+        "https://veilory.online",
+        "https://www.veilory.online",
+        "http://localhost:3000"
+    }
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+    return add_cors_headers(request, response)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    response = JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
+    return add_cors_headers(request, response)
 
 
 @app.exception_handler(Exception)
@@ -82,10 +115,11 @@ async def global_exception_handler(request: Request, exc: Exception):
     message to the client — never expose internal details.
     """
     logger.exception("Unhandled exception on %s %s", request.method, request.url)
-    return JSONResponse(
+    response = JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "An internal server error occurred. Please try again later."},
     )
+    return add_cors_headers(request, response)
 
 
 # ── Routes ───────────────────────────────────────────────────────────
