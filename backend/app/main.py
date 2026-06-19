@@ -114,16 +114,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     Logs the full traceback server-side but returns a sanitised
     message to the client — never expose internal details.
     """
-    import traceback
-    tb = traceback.format_exc()
     logger.exception("Unhandled exception on %s %s", request.method, request.url)
     response = JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "detail": "An internal server error occurred. Please try again later.",
-            "error": str(exc),
-            "traceback": tb
-        },
+        content={"detail": "An internal server error occurred. Please try again later."},
     )
     return add_cors_headers(request, response)
 
