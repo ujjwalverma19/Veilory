@@ -21,15 +21,13 @@ const BackgroundVideo = React.memo(() => {
         preload="auto"
         poster="https://res.cloudinary.com/dlhxpwnth/video/upload/q_auto,f_auto,w_1280/v1781689612/0617_dhfg0l.jpg"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ transform: "translate3d(0, 0, 0)", willChange: "transform" }}
+        style={{ transform: "translate3d(0, 0, 0)", willChange: "transform", opacity: 0.85 }}
       >
         <source
           src="https://res.cloudinary.com/dlhxpwnth/video/upload/q_auto,vc_h264,w_1280/v1781689612/0617_dhfg0l.mp4"
           type="video/mp4"
         />
       </video>
-      {/* Light warm cream overlay layer with subtle blur and opacity for high text contrast */}
-      <div className="absolute inset-0 bg-[#faf8f5]/85 backdrop-blur-[1px]" />
     </div>
   );
 });
@@ -214,7 +212,7 @@ export default function Home() {
                 onSubmit={handleSearch}
                 className="max-w-md mx-auto"
               >
-                <div className="relative border border-[#1a1a1a]/12 rounded-2xl bg-white/55 backdrop-blur-sm hover:bg-white/70 focus-within:bg-white/80 focus-within:border-[#1a1a1a]/20 transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
+                <div className="relative border border-[#1a1a1a]/12 rounded-2xl bg-[#faf8f5]/70 hover:bg-[#faf8f5]/80 focus-within:bg-[#faf8f5]/90 focus-within:border-[#1a1a1a]/20 transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.06)]">
                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1a1a1a]/40" />
 
                   <div className="relative">
@@ -277,7 +275,7 @@ export default function Home() {
                 <button
                   key={feeling.query}
                   onClick={() => handleQuickSearch(feeling.query)}
-                  className="px-4 py-2 rounded-full border border-[#1a1a1a]/10 bg-white/45 backdrop-blur-sm text-[13px] text-[#1a1a1a]/65 font-normal hover:bg-white/70 hover:border-[#1a1a1a]/18 hover:text-[#1a1a1a]/85 transition-all duration-400 cursor-pointer"
+                  className="px-4 py-2 rounded-full border border-[#1a1a1a]/10 bg-[#faf8f5]/50 text-[13px] text-[#1a1a1a]/75 font-normal hover:bg-[#faf8f5]/75 hover:border-[#1a1a1a]/18 hover:text-[#1a1a1a]/90 transition-all duration-400 cursor-pointer"
                 >
                   <span className="mr-1.5 opacity-80">{feeling.emoji}</span>
                   {feeling.label}
@@ -291,7 +289,7 @@ export default function Home() {
         {/* ═══════════════════════════════════════════════════════
             STORIES FROM PEOPLE LIKE YOU — preview feed
         ═══════════════════════════════════════════════════════ */}
-        <section className="relative px-6 md:px-12 py-24 border-t border-[#1a1a1a]/5 bg-white/10">
+        <section className="relative px-6 md:px-12 py-24 border-t border-[#1a1a1a]/5 bg-[rgba(0,0,0,0.02)]">
           <div className="max-w-6xl mx-auto space-y-16">
             <div className="text-center space-y-3">
               <h2
@@ -342,7 +340,7 @@ export default function Home() {
                 <button
                   key={item.label}
                   onClick={() => handleQuickSearch(item.query)}
-                  className="px-5 py-2.5 rounded-full border border-[#1a1a1a]/8 bg-white/35 backdrop-blur-sm text-xs text-[#1a1a1a]/60 font-medium hover:bg-white/60 hover:border-[#1a1a1a]/15 hover:text-[#1a1a1a]/80 transition-all duration-400 cursor-pointer"
+                  className="px-5 py-2.5 rounded-full border border-[#1a1a1a]/8 bg-[#faf8f5]/40 text-xs text-[#1a1a1a]/70 font-medium hover:bg-[#faf8f5]/65 hover:border-[#1a1a1a]/15 hover:text-[#1a1a1a]/85 transition-all duration-400 cursor-pointer"
                 >
                   {item.label}
                 </button>
@@ -354,7 +352,7 @@ export default function Home() {
         {/* ═══════════════════════════════════════════════════════
             EDITORIAL PHILOSOPHY SECTIONS
         ═══════════════════════════════════════════════════════ */}
-        <section className="relative px-6 md:px-12 py-32 border-t border-[#1a1a1a]/5 bg-white/15">
+        <section className="relative px-6 md:px-12 py-32 border-t border-[#1a1a1a]/5 bg-[rgba(0,0,0,0.02)]">
           <div className="max-w-4xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-16">
               
