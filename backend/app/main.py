@@ -160,4 +160,25 @@ def startup_db_setup():
         from app.db.database import Base, engine
         Base.metadata.create_all(bind=engine)
         logger.info("SQLite tables verified/created.")
+    else:
+        logger.info("PostgreSQL database detected. Running Alembic migrations programmatically...")
+        try:
+            import os
+            from alembic.config import Config
+            from alembic import command
+            
+            # Resolve paths relative to app/main.py
+            app_dir = os.path.dirname(os.path.abspath(__file__))
+            backend_dir = os.path.dirname(app_dir)
+            alembic_ini_path = os.path.join(backend_dir, "alembic.ini")
+            
+            alembic_cfg = Config(alembic_ini_path)
+            # Make sure script_location is resolved correctly (backend/alembic)
+            alembic_cfg.set_main_option("script_location", os.path.join(backend_dir, "alembic"))
+            alembic_cfg.set_main_option("sqlalchemy.url", settings.SQLALCHEMY_DATABASE_URI)
+            
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Alembic migrations completed successfully.")
+        except Exception as e:
+            logger.error(f"Failed to run Alembic migrations on startup: {e}")
     logger.info("Veilory backend startup events completed successfully.")
