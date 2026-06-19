@@ -1,16 +1,6 @@
 """
-app/main.py — FastAPI Application Entrypoint
-============================================
-Creates the FastAPI application, configures middleware, and mounts
-the versioned API router.
-
-Design decisions:
-  • A global exception handler catches unhandled exceptions and returns
-    a clean 500 JSON response instead of leaking stack traces.
-  • CORS origins are loaded from the ``BACKEND_CORS_ORIGINS`` setting
-    so production can restrict allowed frontends.
-  • A ``/health`` endpoint is provided for load-balancer health checks.
-  • The ``/api/v1/docs`` URL is the interactive API documentation.
+FastAPI application entrypoint for the Veilory backend.
+Sets up middleware, global exception handlers, and API routes.
 """
 
 import logging

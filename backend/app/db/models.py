@@ -1,24 +1,5 @@
 """
-app/db/models.py — SQLAlchemy ORM Models
-========================================
-Defines three database tables:
-
-  1. **users** — registered accounts.
-  2. **experiences** — user-submitted life lessons / stories.
-  3. **search_history** — log of semantic search queries.
-
-Design decisions:
-  • ``privacy`` uses a PostgreSQL Enum type (``PrivacyLevel``) so invalid
-    values are rejected at the database level, not just the API layer.
-  • ``ARRAY(String)`` stores emotion tags natively in PostgreSQL — no
-    join table needed for this simple list.
-  • ``server_default=func.now()`` lets PostgreSQL set the timestamp,
-    avoiding clock-skew issues between app servers.
-  • ``onupdate=func.now()`` is handled with ``server_default`` +
-    explicit update in the CRUD layer because SQLAlchemy's ``onupdate``
-    only fires from Python, not raw SQL.
-  • All foreign keys cascade deletes: when a user is removed, their
-    experiences and search history are cleaned up automatically.
+SQLAlchemy ORM models defining the database schema.
 """
 
 import enum

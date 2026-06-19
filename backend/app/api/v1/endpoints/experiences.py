@@ -1,22 +1,5 @@
 """
-app/api/v1/endpoints/experiences.py — Experience CRUD Endpoints
-===============================================================
-Full create / read / update / delete for user experiences.
-
-Design decisions:
-  • POST returns ``201 Created`` with the full resource.
-  • GET /{id} checks privacy: public experiences are visible to anyone,
-    private/anonymous require ownership.
-  • PUT /{id} only allows the author to modify their own experience.
-  • DELETE /{id} returns ``204 No Content`` with no body.
-  • Pagination defaults to 20 items per page with a max of 100.
-    The response includes a ``total`` count so frontends can build
-    page controls.
-  • Anonymous experiences mask ``user_id`` and ``author_name`` in
-    the serialised response — the author's identity is never leaked.
-  • A helper ``_serialize_experience`` centralises the privacy-aware
-    serialisation logic so it's applied consistently across all
-    endpoints.
+API endpoints for managing user experiences.
 """
 
 import logging

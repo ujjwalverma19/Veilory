@@ -1,63 +1,43 @@
-# Veilory — AI-Powered Emotional Wisdom Search Engine
+# Veilory
 
-Veilory is a professional-grade full-stack web application designed to preserve and explore the emotional library of humanity. Instead of matching keywords, Veilory allows users to search human lived experiences by **emotion and meaning**, helping people find guidance from others who have walked similar paths.
-
----
+Veilory is a web application designed to archive and search human experiences by emotional resonance and meaning. Rather than matching keyword strings, Veilory uses semantic search to connect users with narratives and lived experiences of others who have gone through similar life paths, challenges, or transitions.
 
 ## 🌌 The Problem
-Traditional search engines are designed to match keywords and optimize for commercial intent. When a user searches a phrase like *"I failed my placement exams"* or *"struggling with founder burnout,"* standard search engines return SEO-optimized articles, lists, or dry medical/academic pages. 
+Standard search engines optimize for commercial intent and exact syntax matches. When someone searches for guidance on a personal challenge (e.g., "coping with exam failure" or "struggling with startup burnout"), they often receive search-engine-optimized articles, listicles, or generic advice pages.
 
-They fail to surface:
-1. **Lived Human Experience**: Real stories of people who went through the exact same struggle.
-2. **Contextual Significance**: Why a setback occurred, what lesson it contained, and how the emotional state evolved.
-3. **Actionable Emotional Wisdom**: Structured takeaways and cognitive reframings.
+Veilory aims to solve this by providing:
+1. **Lived Experiences**: Authentic stories shared by people who navigated similar circumstances.
+2. **Structural Reflection**: Summaries, lessons learned, and why a specific experience was meaningful.
+3. **Privacy Control**: Custom options to share experiences publicly, anonymously, or keep them private.
 
-Traditional keyword search isolates users. Veilory connects them to the collective emotional wisdom of humanity.
+## 💡 Features
+* **Semantic Search**: Powered by dense vectors to locate experiences by feeling and meaning.
+* **AI Reflections Sidebar**: Automatic extraction of themes, primary/secondary emotions, key lessons, and a visualization of the emotional transition (`Initial State → Catalyst → Outcome`).
+* **Personalized Recommendations**: A content feed recommended based on user-selected interest tags, search history, and reading activity.
+* **Access & Rate Limiting**: Simple daily search tracking rules for guest and free registered users.
 
----
+## 🛠️ Tech Stack
+* **Frontend**: Next.js 15 (React, TypeScript), styled with Vanilla CSS (Apple Journal/Medium-inspired design) and Framer Motion.
+* **Backend**: FastAPI (Python 3.11+).
+* **Database**: PostgreSQL (with SQLAlchemy ORM and Alembic migrations). SQLite is used locally.
+* **Vector Search**: ChromaDB using `sentence-transformers` (`all-MiniLM-L6-v2`) for generating and indexing 384-dimensional text embeddings. Includes a deterministic hash fallback for offline or GPU-restricted environments.
+* **Emotion Classification**: Keyword scoring fallback and DistilBERT-based MNLI classifier for tags mapping.
 
-## 💡 The Solution
-Veilory is an AI-powered human experience repository and semantic search engine. Users share their stories (publicly, anonymously, or privately) and our local AI pipelines automatically extract:
-* **Primary and Secondary Emotions** with confidence scores.
-* **The Main Theme** (e.g., *Workplace Burnout*, *Relationship Healing*) and theme confidence.
-* **Reflections & Summaries**: Multi-length summaries and why this experience matters.
-* **Actionable Lessons Learned**: Takeaways and key lessons.
-* **Emotional Journey Flow**: Visualizing the transition from `Initial State → Catalyst → Outcome`.
-
----
-
-## 🛠️ Technology Stack
-Veilory is built using a modern, fast, and 100% locally runnable stack:
-
-* **Frontend**: Next.js 16 (React, TypeScript), styled with a warm, editorial Vanilla CSS aesthetic (Apple Journal & Medium inspired), animated with Framer Motion.
-* **Backend**: FastAPI (Python 3.11+), structured with clean domain boundaries and Dependency Injection.
-* **Database**: PostgreSQL (emulated locally via SQLite) mapped through SQLAlchemy ORM, managed with Alembic database migrations.
-* **Vector Database**: ChromaDB storing and querying 384-dimensional dense vectors using Cosine Similarity metrics.
-* **AI Layer**: 
-  - `sentence-transformers` using the `all-MiniLM-L6-v2` model for generating dense representations of stories, search queries, and recommendations.
-  - Zero-shot classification pipeline (`typeform/distilbert-base-uncased-mnli`) with rules-based fallback for lightning-fast offline emotion classification.
-
----
-
-## ⚡ Quick Start & Setup
+## ⚡ Setup & Run
 
 ### Prerequisites
 * Python 3.11+
 * Node.js 18+
-* npm or yarn
 
 ### 1. Backend Setup
 ```bash
-# Navigate to backend
 cd backend
 
-# Create virtual environment
+# Create & activate virtual env
 python -m venv venv
-
-# Activate virtual environment
-# On Windows:
+# Windows:
 .\venv\Scripts\activate
-# On macOS/Linux:
+# macOS/Linux:
 source venv/bin/activate
 
 # Install dependencies
@@ -66,48 +46,22 @@ pip install -r requirements.txt
 # Run migrations
 alembic upgrade head
 
-# Seed the database (112 realistic experiences)
+# Seed base experiences
 python seed_experiences.py
 
-# Run FastAPI server
+# Start uvicorn
 python -m uvicorn app.main:app --reload
 ```
-The FastAPI documentation will be available at `http://localhost:8000/docs`.
+Swagger docs are available at `http://localhost:8000/docs`.
 
 ### 2. Frontend Setup
 ```bash
-# Navigate to frontend
 cd ../frontend
-
-# Install dependencies
 npm install
-
-# Run dev server
 npm run dev
 ```
-The application will launch at `http://localhost:3000`.
+The application will run at `http://localhost:3000`.
 
----
-
-## 🧠 Core AI Architecture
-
-```
-User Story ──> [Emotion Service] ──> Primary/Secondary Emotions
-             ──> [Wisdom Service] ──> Theme, Lessons, Journey, Summary
-             ──> [Embedding Service] ──> 384d Vector (all-MiniLM-L6-v2)
-             ──> [ChromaDB Indexer] ──> Stored in Vector DB
-             ──> [SQL Database] ──> Persisted metadata & columns
-```
-
-1. **Emotion Classifier**: Classifies content keywords and patterns into structured emotions with confidence ratios.
-2. **Wisdom Panel Generator**: Synthesizes the core theme, lessons learned, and why a story matters.
-3. **Sentence Transformers**: Generates embeddings for stories, search inputs, and interests.
-4. **ChromaDB**: Houses vector representations.
-5. **Personalized Recommendations**: Evaluates interest vectors, viewed history tags, and search keywords to output curated recommendations with explanatory reasons.
-
----
-
-## 🗺️ Future Roadmap
-* **Offline Transformer Pipelines**: Ship full ONNX-runtime local models in the client browser for zero-latency client-side wisdom generation.
-* **Voice Reflection diary**: Allow users to dictate their experiences orally, applying transcription models (Whisper) before AI insights extraction.
-* **Wisdom graphs**: Map similar stories in a visual, interactive 3D nodes graph to help users navigate overlapping emotional journeys.
+## ⚙️ Deployment
+* **Backend**: Dockerized and configured for deployment on Render (see `Dockerfile` and `render.yaml`).
+* **Frontend**: Optimized for Vercel deployment.

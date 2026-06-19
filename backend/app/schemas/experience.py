@@ -1,20 +1,5 @@
 """
-app/schemas/experience.py — Pydantic Schemas for Experience Domain
-==================================================================
-Defines the data contracts for Experience-related API operations.
-
-Design decisions:
-  • ``privacy`` is validated against the ``PrivacyLevel`` enum so
-    invalid values (e.g. "secret") are rejected at the schema level.
-  • ``emotion_tags`` enforces 1–10 unique tags, strips whitespace, and
-    lowercases for consistent downstream processing.
-  • ``ExperienceUpdate`` makes every field optional — only supplied
-    fields will be updated (partial update semantics).
-  • ``ExperienceResponse`` masks the ``user_id`` to ``None`` when the
-    experience privacy is "anonymous" — so the author's identity is
-    never leaked through the API.
-  • ``PaginatedExperienceResponse`` wraps results with ``total`` count
-    so frontends can render proper pagination controls.
+Pydantic schemas for Experience-related API payloads and responses.
 """
 
 from datetime import datetime

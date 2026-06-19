@@ -1,17 +1,5 @@
 """
-app/schemas/user.py — Pydantic Schemas for User Domain
-======================================================
-Defines the data contracts for User-related API operations.
-
-Design decisions:
-  • ``UserCreate`` enforces minimum password length (8 chars) via a
-    field validator.  This is the API-layer gate; bcrypt handles the
-    actual security.
-  • ``UserResponse`` exposes only safe fields — the password hash is
-    never serialised to JSON.
-  • ``Token`` and ``TokenPayload`` are separated so token *creation*
-    (returning ``Token`` to the client) and token *verification*
-    (decoding into ``TokenPayload``) use distinct schemas.
+Pydantic schemas for User-related API payloads and responses.
 """
 
 from datetime import datetime

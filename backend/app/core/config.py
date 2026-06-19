@@ -1,18 +1,6 @@
 """
-app/core/config.py — Centralised Configuration
-================================================
-Reads all configuration from environment variables (loaded from a .env file
-via pydantic-settings).  Every setting has a sensible default for local
-development, but production deployments MUST override SECRET_KEY and
-database credentials.
-
-Design decisions:
-  • pydantic-settings validates types at startup — a mis-typed PORT will
-    crash immediately instead of causing a subtle runtime bug.
-  • SQLALCHEMY_DATABASE_URI is a computed @property so the connection
-    string always reflects the current field values.
-  • BACKEND_CORS_ORIGINS is parsed as a JSON list so the .env can store
-    a readable array like ["http://localhost:3000"].
+Configuration settings for the Veilory application, loaded from environment
+variables and .env files using Pydantic Settings.
 """
 
 from typing import List

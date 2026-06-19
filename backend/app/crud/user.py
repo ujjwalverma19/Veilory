@@ -1,14 +1,5 @@
 """
-app/crud/user.py — Data Access Layer for Users
-===============================================
-Pure database operations — no HTTP concerns, no business logic.
-
-Design decisions:
-  • Functions accept a ``Session`` and return model instances or ``None``.
-    The calling layer (API endpoint) decides what HTTP status to return.
-  • ``create_user`` hashes the password here so the model never stores
-    a plaintext password, even transiently.
-  • Type hints on every function for IDE support and documentation.
+Database operations for the User model.
 """
 
 from sqlalchemy.orm import Session

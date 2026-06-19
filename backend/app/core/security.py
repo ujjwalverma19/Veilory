@@ -1,18 +1,5 @@
 """
-app/core/security.py — Password Hashing & JWT Utilities
-=======================================================
-All authentication primitives live here so the rest of the codebase never
-touches raw passwords or token encoding directly.
-
-Design decisions:
-  • passlib + bcrypt is the industry standard for password hashing.
-    CryptContext handles algorithm migration automatically via
-    ``deprecated="auto"``.
-  • python-jose handles JWT encoding/decoding.  We include the token
-    *type* ("access") inside the payload so future refresh-token logic
-    can distinguish between token types.
-  • We use ``datetime.now(timezone.utc)`` instead of the deprecated
-    ``datetime.utcnow()`` for timezone-aware expiry timestamps.
+Authentication primitives, including password hashing and JWT token utility functions.
 """
 
 from datetime import datetime, timedelta, timezone

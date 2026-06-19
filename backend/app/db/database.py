@@ -1,17 +1,5 @@
 """
-app/db/database.py — SQLAlchemy Engine & Session Factory
-========================================================
-Creates a single engine and session factory for the entire application.
-The ``get_db`` generator is used as a FastAPI dependency to provide a
-per-request database session with automatic cleanup.
-
-Design decisions:
-  • ``pool_pre_ping=True`` ensures stale connections (e.g. after a
-    Postgres restart) are detected and recycled instead of causing 500s.
-  • The ``Base`` declarative class is defined here so every model module
-    can import it from one canonical location.
-  • ``get_db`` uses a try/finally pattern to guarantee the session is
-    closed even if the request handler raises an exception.
+Database session management and engine creation using SQLAlchemy.
 """
 
 from collections.abc import Generator

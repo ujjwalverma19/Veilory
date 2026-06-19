@@ -1,18 +1,5 @@
 """
-app/crud/experience.py — Data Access Layer for Experiences
-==========================================================
-Pure database operations — no HTTP concerns, no AI/vector logic.
-
-Design decisions:
-  • All ChromaDB / vector-db calls are absent from this layer.
-    That logic belongs in the service layer (future AI phase).
-    The CRUD layer only talks to PostgreSQL.
-  • ``update_experience`` uses ``model_dump(exclude_unset=True)`` so
-    only explicitly-provided fields are modified — true partial-update.
-  • ``get_public_experiences`` filters by ``PrivacyLevel.PUBLIC`` so
-    anonymous/private stories are never leaked via the listing endpoint.
-  • ``count_*`` functions return totals for pagination headers.
-  • Every function has full type hints for IDE support and clarity.
+Database operations for the Experience model.
 """
 
 from sqlalchemy import func

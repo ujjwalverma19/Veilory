@@ -4,7 +4,6 @@ import React, { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Experience, AIInsight } from "@/types";
-import { simulateSearch } from "@/lib/mockData";
 import { Button } from "@/components/ui/Button";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { EmotionTag } from "@/components/ui/EmotionTag";

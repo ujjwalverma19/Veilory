@@ -1,18 +1,5 @@
 """
-app/api/deps.py — Shared FastAPI Dependencies
-=============================================
-Reusable dependency functions injected into route handlers via
-``Depends()``.
-
-Design decisions:
-  • ``get_current_user`` validates the JWT, extracts the ``sub`` claim,
-    and fetches the full User object from the database.  If anything
-    fails, a 401 is raised — never a 403 (which implies the identity is
-    known but access is denied).
-  • The ``credentials_exception`` is defined once and reused to keep
-    error messages consistent.
-  • ``get_db`` is re-exported from ``db.database`` so all endpoints
-    import their dependencies from a single module.
+Shared dependencies for FastAPI endpoints (authentication and database sessions).
 """
 
 from typing import Optional
