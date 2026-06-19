@@ -10,6 +10,31 @@ import { ExperienceCard } from "@/components/ui/ExperienceCard";
 import { Experience } from "@/types";
 import { experienceService } from "@/lib/api";
 
+const BackgroundVideo = React.memo(() => {
+  return (
+    <div className="fixed inset-0 overflow-hidden z-0 pointer-events-none">
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        poster="https://res.cloudinary.com/dlhxpwnth/video/upload/q_auto,f_auto,w_1280/v1781689612/0617_dhfg0l.jpg"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ transform: "translate3d(0, 0, 0)", willChange: "transform" }}
+      >
+        <source
+          src="https://res.cloudinary.com/dlhxpwnth/video/upload/q_auto,vc_h264,w_1280/v1781689612/0617_dhfg0l.mp4"
+          type="video/mp4"
+        />
+      </video>
+      {/* Light warm cream overlay layer with subtle blur and opacity for high text contrast */}
+      <div className="absolute inset-0 bg-[#faf8f5]/85 backdrop-blur-[1px]" />
+    </div>
+  );
+});
+BackgroundVideo.displayName = "BackgroundVideo";
+
 export default function Home() {
   const router = useRouter();
   const {
@@ -135,27 +160,8 @@ export default function Home() {
       <div className="relative w-screen min-h-screen flex flex-col justify-between overflow-x-hidden text-[#1a1a1a] selection:bg-amber-100/60"
            style={{ marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", marginTop: "-7rem", marginBottom: "-2.5rem" }}>
 
-        {/* ═══════════════════════════════════════════════════════
-            FULL VIEWPORT BACKGROUND VIDEO
-        ═══════════════════════════════════════════════════════ */}
-        <div className="fixed inset-0 overflow-hidden z-0">
-<video
-autoPlay
-muted
-loop
-playsInline
-preload="auto"
-className="absolute inset-0 w-full h-full object-cover"
-
->
-
-<source
- src="https://res.cloudinary.com/dlhxpwnth/video/upload/v1781689612/0617_dhfg0l.mp4"
- type="video/mp4"
-/> </video>
-        </div>
-
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-[0.5px] z-10 pointer-events-none" />
+        {/* Immersive background video with high-contrast warm-cream overlay */}
+        <BackgroundVideo />
 
         {/* ═══════════════════════════════════════════════════════
             HERO — vertically centered, immersive, floating in space
