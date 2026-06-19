@@ -16,7 +16,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
             "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "
             "img-src 'self' data: https://fastapi.tiangolo.com; "
-            "connect-src 'self' https://api.veilory.online https://veilory-api.onrender.com;"
+            "connect-src 'self' https://veilory-api.onrender.com;"
         )
         response.headers['Content-Security-Policy'] = csp
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
