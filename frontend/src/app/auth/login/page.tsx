@@ -8,6 +8,30 @@ import { useAuth } from "@/context/AuthContext";
 import { ArrowRight, Mail, Lock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
+const AuthBackgroundVideo = React.memo(() => {
+  return (
+    <div className="fixed inset-0 overflow-hidden z-0 pointer-events-none">
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ transform: "translate3d(0, 0, 0)", willChange: "transform" }}
+      >
+        <source
+          src="https://res.cloudinary.com/dlhxpwnth/video/upload/v1781932543/vidssave.com_Blue_Sky_No_Copyright_Video___Valley_Copyright_Free_Video___Mountain_Free_Stock_Video___Free_Footage_1080p_haorjo.mp4"
+          type="video/mp4"
+        />
+      </video>
+      {/* Subtle dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/8 z-10" />
+    </div>
+  );
+});
+AuthBackgroundVideo.displayName = "AuthBackgroundVideo";
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
@@ -43,22 +67,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center py-12 px-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="bg-white/50 backdrop-blur-sm p-8 md:p-12 rounded-2xl w-full max-w-md border border-[#1a1a1a]/8"
-      >
-        <div className="text-center mb-8">
-          <h1
-            className="text-2xl font-light tracking-tight mb-2 text-[#1a1a1a]"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Welcome back
-          </h1>
-          <p className="text-[#1a1a1a]/40 text-sm font-light">Sign in to access your library</p>
-        </div>
+    <>
+      <AuthBackgroundVideo />
+      <div className="relative z-20 min-h-[75vh] flex items-center justify-center py-12 px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="bg-[#faf8f5]/85 backdrop-blur-md p-8 md:p-12 rounded-2xl w-full max-w-md border border-[#1a1a1a]/12 shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+        >
+          <div className="text-center mb-8">
+            <h1
+              className="text-2xl font-light tracking-tight mb-2 text-[#1a1a1a]"
+              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+            >
+              Welcome back
+            </h1>
+            <p className="text-[#1a1a1a]/50 text-sm font-light">Sign in to access your library</p>
+          </div>
 
         {errorMsg && (
           <motion.div
@@ -146,5 +172,6 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+    </>
   );
 }
