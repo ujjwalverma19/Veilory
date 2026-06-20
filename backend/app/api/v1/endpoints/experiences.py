@@ -106,6 +106,36 @@ def get_debug_logs():
     with open(log_path, "r") as f:
         return {"logs": f.read()}
 
+@router.get(
+    "/db-info",
+    summary="Get database tables and row counts",
+)
+def get_db_info(db: Session = Depends(get_db)):
+    from sqlalchemy import inspect, text
+    try:
+        inspector = inspect(db.bind)
+        tables = inspector.get_table_names()
+        
+        row_counts = {}
+        for table in tables:
+            try:
+                count_res = db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
+                row_counts[table] = count_res
+            except Exception as e:
+                row_counts[table] = f"Error: {e}"
+                
+        # Include database connection info (masked password)
+        db_uri = db.bind.url
+        masked_uri = f"{db_uri.drivername}://{db_uri.username}:****@{db_uri.host}:{db_uri.port}/{db_uri.database}"
+        
+        return {
+            "database_url": masked_uri,
+            "tables": tables,
+            "row_counts": row_counts
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 @router.post(
     "/",
     response_model=ExperienceResponse,
