@@ -3,11 +3,19 @@ import fs from "fs";
 import path from "path";
 
 // Build-time diagnostic log
+const vercelEnv: Record<string, string> = {};
+Object.keys(process.env).forEach(key => {
+  if (key.startsWith("NEXT_PUBLIC_VERCEL_") || key === "NEXT_PUBLIC_API_URL") {
+    vercelEnv[key] = process.env[key] || "";
+  }
+});
+
 const checkEnv = {
   buildTime: new Date().toISOString(),
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "NOT_SET",
   NEXT_PUBLIC_SUPABASE_ANON_KEY_EXISTS: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   ALL_ENV_KEYS: Object.keys(process.env).filter(k => k.startsWith("NEXT_PUBLIC_")),
+  VERCEL_ENV: vercelEnv,
 };
 
 console.log("BUILD TIME CHECK:", checkEnv);
