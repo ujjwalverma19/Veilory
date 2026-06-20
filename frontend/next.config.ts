@@ -15,6 +15,8 @@ const checkEnv = {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "NOT_SET",
   NEXT_PUBLIC_SUPABASE_ANON_KEY_EXISTS: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   ALL_ENV_KEYS: Object.keys(process.env).filter(k => k.startsWith("NEXT_PUBLIC_")),
+  SUPABASE_KEYS_FOUND: Object.keys(process.env).filter(k => k.toLowerCase().includes("supabase")),
+  ALL_ENV_KEYS_COUNT: Object.keys(process.env).length,
   VERCEL_ENV: vercelEnv,
 };
 
