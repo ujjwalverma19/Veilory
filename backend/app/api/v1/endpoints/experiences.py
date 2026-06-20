@@ -85,6 +85,27 @@ def _serialize_experience(
 # ── Endpoints ────────────────────────────────────────────────────────
 
 
+def append_debug(msg: str):
+    import os
+    log_path = "/app/chroma_db/debug.log" if os.getenv("RENDER") else "./debug.log"
+    try:
+        with open(log_path, "a") as f:
+            f.write(msg + "\n")
+    except Exception:
+        pass
+
+@router.get(
+    "/debug-logs",
+    summary="Get backend debug logs",
+)
+def get_debug_logs():
+    import os
+    log_path = "/app/chroma_db/debug.log" if os.getenv("RENDER") else "./debug.log"
+    if not os.path.exists(log_path):
+        return {"logs": "No debug log file found."}
+    with open(log_path, "r") as f:
+        return {"logs": f.read()}
+
 @router.post(
     "/",
     response_model=ExperienceResponse,
@@ -101,48 +122,69 @@ def create(
     The ``emotion_tags`` are automatically normalised (trimmed,
     lowercased, deduplicated) by the schema validator.
     """
-    experience = create_experience(
-        db=db, experience_in=experience_in, user_id=current_user.id,
-    )
-    
-    # AI Indexing Pipeline
+    append_debug("--- START CREATE ---")
     try:
+        append_debug("1. Calling create_experience")
+        experience = create_experience(
+            db=db, experience_in=experience_in, user_id=current_user.id,
+        )
+        append_debug(f"2. create_experience succeeded. id={experience.id}")
+    except Exception as e:
+        append_debug(f"ERROR in create_experience: {e}")
+        raise
+
+    emotions = None
+    try:
+        append_debug("3. Calling detect_emotions")
         emotions = emotion_service.detect_emotions(experience.title, experience.content)
+        append_debug(f"4. detect_emotions succeeded: {emotions}")
         experience.primary_emotion = emotions["primary"]
         experience.secondary_emotions = emotions["secondary"]
         experience.emotion_confidence = emotions["confidence"]
-        
-        # Phase 7 AI Wisdom Extraction
-        wisdom = wisdom_service.generate_wisdom(
-            title=experience.title,
-            content=experience.content,
-            primary_emotion=emotions["primary"],
-            secondary_emotions=emotions["secondary"]
-        )
-        experience.main_theme = wisdom["main_theme"]
-        experience.theme_confidence = wisdom["theme_confidence"]
-        experience.why_matters = wisdom["why_matters"]
-        experience.short_summary = wisdom["short_summary"]
-        experience.medium_summary = wisdom["medium_summary"]
-        experience.key_lesson = wisdom["key_lesson"]
-        experience.lessons_learned = wisdom["lessons_learned"]
-        experience.emotion_initial = wisdom["emotion_initial"]
-        experience.emotion_catalyst = wisdom["emotion_catalyst"]
-        experience.emotion_outcome = wisdom["emotion_outcome"]
-        
+    except Exception as e:
+        append_debug(f"ERROR in detect_emotions: {e}")
+
+    wisdom = None
+    if emotions:
+        try:
+            append_debug("5. Calling generate_wisdom")
+            wisdom = wisdom_service.generate_wisdom(
+                title=experience.title,
+                content=experience.content,
+                primary_emotion=emotions["primary"],
+                secondary_emotions=emotions["secondary"]
+            )
+            append_debug("6. generate_wisdom succeeded")
+            experience.main_theme = wisdom["main_theme"]
+            experience.theme_confidence = wisdom["theme_confidence"]
+            experience.why_matters = wisdom["why_matters"]
+            experience.short_summary = wisdom["short_summary"]
+            experience.medium_summary = wisdom["medium_summary"]
+            experience.key_lesson = wisdom["key_lesson"]
+            experience.lessons_learned = wisdom["lessons_learned"]
+            experience.emotion_initial = wisdom["emotion_initial"]
+            experience.emotion_catalyst = wisdom["emotion_catalyst"]
+            experience.emotion_outcome = wisdom["emotion_outcome"]
+        except Exception as e:
+            append_debug(f"ERROR in generate_wisdom: {e}")
+
+    try:
+        append_debug("7. Calling index_experience")
         doc_id = vector_service.index_experience(
             experience_id=experience.id,
             title=experience.title,
             content=experience.content,
-            primary_emotion=emotions["primary"],
-            secondary_emotions=emotions["secondary"]
+            primary_emotion=emotions["primary"] if emotions else "unknown",
+            secondary_emotions=emotions["secondary"] if emotions else []
         )
+        append_debug(f"8. index_experience succeeded, doc_id={doc_id}")
         experience.embedding_reference_id = doc_id
         db.commit()
         db.refresh(experience)
     except Exception as e:
-        logger.error(f"AI Indexing Pipeline failed on create: {e}")
+        append_debug(f"ERROR in index_experience: {e}")
 
+    append_debug("9. Returning experience response")
     return _serialize_experience(experience, current_user_id=current_user.id)
 
 
