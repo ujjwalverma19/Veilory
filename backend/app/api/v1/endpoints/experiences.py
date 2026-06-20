@@ -87,7 +87,7 @@ def _serialize_experience(
 
 def append_debug(msg: str):
     import os
-    log_path = "/app/chroma_db/debug.log" if os.getenv("RENDER") else "./debug.log"
+    log_path = "/tmp/debug.log" if os.getenv("RENDER") else "./debug.log"
     try:
         with open(log_path, "a") as f:
             f.write(msg + "\n")
@@ -100,7 +100,7 @@ def append_debug(msg: str):
 )
 def get_debug_logs():
     import os
-    log_path = "/app/chroma_db/debug.log" if os.getenv("RENDER") else "./debug.log"
+    log_path = "/tmp/debug.log" if os.getenv("RENDER") else "./debug.log"
     if not os.path.exists(log_path):
         return {"logs": "No debug log file found."}
     with open(log_path, "r") as f:
