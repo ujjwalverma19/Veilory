@@ -10,12 +10,22 @@ Object.keys(process.env).forEach(key => {
   }
 });
 
+// Identify custom user-defined env keys by filtering out boilerplate system keys
+const systemPrefixes = ["npm_", "NODE_", "AWS_", "YARN_", "PNPM_", "COREPACK_", "VSCODE_", "BASH_", "NEXT_PUBLIC_VERCEL_", "VERCEL_"];
+const systemKeys = ["PATH", "PWD", "HOME", "USER", "SHELL", "SHLVL", "LANG", "LC_ALL", "MAIL", "LOGNAME", "HOSTNAME", "TERM", "PAGER", "EDITOR", "INIT_CWD", "CI", "LESS", "LS_COLORS", "MANPATH", "INFOPATH", "PKG_CONFIG_PATH", "LD_LIBRARY_PATH"];
+const customEnvKeys = Object.keys(process.env).filter(key => {
+  if (systemKeys.includes(key)) return false;
+  if (systemPrefixes.some(prefix => key.startsWith(prefix))) return false;
+  return true;
+});
+
 const checkEnv = {
   buildTime: new Date().toISOString(),
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "NOT_SET",
   NEXT_PUBLIC_SUPABASE_ANON_KEY_EXISTS: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   ALL_ENV_KEYS: Object.keys(process.env).filter(k => k.startsWith("NEXT_PUBLIC_")),
   SUPABASE_KEYS_FOUND: Object.keys(process.env).filter(k => k.toLowerCase().includes("supabase")),
+  CUSTOM_ENV_KEYS: customEnvKeys,
   ALL_ENV_KEYS_COUNT: Object.keys(process.env).length,
   VERCEL_ENV: vercelEnv,
 };
