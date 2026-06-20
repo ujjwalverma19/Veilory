@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -35,13 +35,20 @@ AuthBackgroundVideo.displayName = "AuthBackgroundVideo";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, user, isLoading: isAuthLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      console.log("[REDIRECT_DASHBOARD] Redirecting to /dashboard from login page because user is already authenticated.");
+      router.push("/dashboard");
+    }
+  }, [user, isAuthLoading, router]);
 
   const handleGoogleLogin = async () => {
     console.log("Google button clicked");

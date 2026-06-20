@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { User, Experience, PrivacyLevel } from "@/types";
 import { SearchLimitModal } from "@/components/ui/SearchLimitModal";
 import { TokenStorage } from "@/lib/authStorage";
@@ -11,6 +11,18 @@ import {
   searchService, 
   recommendationService 
 } from "@/lib/api";
+
+const hasOAuthParams = () => {
+  if (typeof window === "undefined") return false;
+  const hash = window.location.hash;
+  const search = window.location.search;
+  return (
+    hash.includes("access_token") ||
+    hash.includes("refresh_token") ||
+    hash.includes("id_token") ||
+    search.includes("code=")
+  );
+};
 
 interface AuthContextType {
   user: User | null;
@@ -53,7 +65,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window !== "undefined" && hasOAuthParams()) {
+      console.log("[OAUTH_PARAMS_DETECTED] OAuth params detected in URL on initial loading state creation.");
+      return true;
+    }
+    return true;
+  });
 
   // Search limit states
   const [searchCount, setSearchCount] = useState(0);
@@ -91,15 +109,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const lastSyncedTokenRef = useRef<string | null>(null);
+
   // Initialize from backend (or fallback local storage for guest searches)
   useEffect(() => {
     const initAuth = async () => {
+      console.log("[INIT_AUTH_START] initAuth starting...");
+      const oauthDetected = hasOAuthParams();
+      if (oauthDetected) {
+        console.log("[OAUTH_PARAMS_DETECTED] OAuth params detected in URL during initAuth.");
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || TokenStorage.getToken();
       
+      if (session) {
+        console.log("[SESSION_FOUND] Session found in getSession(). User ID:", session.user?.id);
+      }
+
       if (token) {
         try {
-          if (session?.access_token && token === session.access_token) {
+          if (session?.access_token) {
+            lastSyncedTokenRef.current = session.access_token;
             await authService.oauth(session.access_token);
           }
           const profile = await authService.getProfile();
@@ -131,7 +162,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await refreshExperiences();
-      setIsLoading(false);
+
+      if (!oauthDetected) {
+        setIsLoading(false);
+      }
     };
 
     initAuth();
@@ -139,9 +173,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth state changes on Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       console.log("Supabase Auth Event:", event);
+      if (event === "SIGNED_IN") {
+        console.log("[SIGNED_IN_EVENT] Supabase SIGNED_IN event triggered.");
+      }
+
       if (session?.access_token) {
-        const localToken = TokenStorage.getToken();
-        if (!localToken || localToken !== session.access_token) {
+        if (lastSyncedTokenRef.current !== session.access_token) {
+          console.log("Syncing access token to backend since it differs from lastSyncedTokenRef.");
+          lastSyncedTokenRef.current = session.access_token;
           setIsLoading(true);
           try {
             await authService.oauth(session.access_token);
@@ -155,8 +194,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } finally {
             setIsLoading(false);
           }
+        } else {
+          console.log("Token already synced, skipping duplicate API calls.");
+          setIsLoading(false);
         }
-      } else if (event === "SIGNED_OUT") {
+      } else {
+        if (hasOAuthParams()) {
+          console.log("No session available but OAuth params exist in URL; ending loading state.");
+          setIsLoading(false);
+        }
+      }
+
+      if (event === "SIGNED_OUT") {
+        lastSyncedTokenRef.current = null;
         if (TokenStorage.getToken()) {
           TokenStorage.clearToken();
           setUser(null);

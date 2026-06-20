@@ -11,8 +11,10 @@ export default function AuthCallback() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
+        console.log("[REDIRECT_DASHBOARD] Redirecting to /dashboard from callback page");
         router.push("/dashboard");
       } else {
+        console.log("[REDIRECT_LOGIN] Redirecting to /auth/login from callback page");
         router.push("/auth/login");
       }
     }
