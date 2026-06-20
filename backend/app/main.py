@@ -23,6 +23,15 @@ logger = logging.getLogger("veilory")
 
 logger.info("Initializing Veilory backend application...")
 logger.info("Configuration loaded. Project name: %s", settings.PROJECT_NAME)
+
+import os
+db_url = os.getenv("DATABASE_URL")
+logger.info(f"STARTUP DB VERIFICATION: DATABASE_URL env var exists: {db_url is not None}")
+selected_uri = settings.SQLALCHEMY_DATABASE_URI
+is_sqlite = selected_uri.startswith("sqlite")
+logger.info(f"STARTUP DB VERIFICATION: Selected DB Engine: {'SQLite' if is_sqlite else 'PostgreSQL'}")
+logger.info(f"STARTUP DB VERIFICATION: SQLALCHEMY_DATABASE_URI: {selected_uri.split('@')[-1] if '@' in selected_uri else selected_uri}") # mask password if present
+
 logger.info("Database connection factory (SQLAlchemy engine) prepared.")
 
 # ── Application ──────────────────────────────────────────────────────
