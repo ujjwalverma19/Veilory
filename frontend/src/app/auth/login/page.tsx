@@ -44,12 +44,17 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false);
 
   const handleGoogleLogin = async () => {
+    console.log("Google button clicked");
+    console.log("SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("SUPABASE_KEY exists:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    
     setErrorMsg("");
     setIsGoogleLoading(true);
     try {
       await loginWithGoogle();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Google Sign-In failed.";
+    } catch (error: unknown) {
+      console.error(error);
+      const message = error instanceof Error ? error.message : "Google Sign-In failed.";
       setErrorMsg(message);
       setIsGoogleLoading(false);
     }
