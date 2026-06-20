@@ -20,6 +20,7 @@ Design decisions:
 from datetime import timedelta
 import os
 import json
+from typing import Optional
 import urllib.request
 import urllib.error
 import re
@@ -270,4 +271,34 @@ def upgrade_tier(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+class SupabaseConfigResponse(BaseModel):
+    supabase_url: Optional[str] = None
+    supabase_anon_key: Optional[str] = None
+
+
+@router.get(
+    "/config",
+    response_model=SupabaseConfigResponse,
+    summary="Get public Supabase configuration",
+)
+def get_supabase_config() -> SupabaseConfigResponse:
+    """Return public Supabase URL and Anon Key so frontend can dynamically initialize."""
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_anon_key = os.getenv("SUPABASE_ANON_KEY")
+
+    if not supabase_url:
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            match = re.search(r"postgres\.(?P<ref>[a-z0-9]+)@", db_url)
+            if match:
+                ref = match.group("ref")
+                supabase_url = f"https://{ref}.supabase.co"
+
+    return SupabaseConfigResponse(
+        supabase_url=supabase_url,
+        supabase_anon_key=supabase_anon_key
+    )
+
 
