@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowRight, Mail, Lock, User, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { OAuthButton } from "@/components/ui/OAuthButton";
 
 const AuthBackgroundVideo = React.memo(() => {
   return (
@@ -34,13 +35,26 @@ AuthBackgroundVideo.displayName = "AuthBackgroundVideo";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signup, loginWithGoogle } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const handleGoogleSignup = async () => {
+    setErrorMsg("");
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Google Sign-Up failed.";
+      setErrorMsg(message);
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +99,28 @@ export default function SignupPage() {
               Join Veilory
             </h1>
             <p className="text-[#1a1a1a]/50 text-sm font-light">Create an account to preserve and share your experiences</p>
+          </div>
+
+          <div className="space-y-3 mb-6">
+            <OAuthButton
+              provider="google"
+              onClick={handleGoogleSignup}
+              isLoading={isGoogleLoading}
+            />
+            <OAuthButton
+              provider="apple"
+              onClick={() => {}}
+              isLoading={false}
+            />
+          </div>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#1a1a1a]/8"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-[#faf8f5]/85 px-3 text-[#1a1a1a]/40 font-medium">Or register with email</span>
+            </div>
           </div>
 
         {errorMsg && (

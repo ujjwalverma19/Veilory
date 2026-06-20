@@ -80,9 +80,18 @@ export function Navbar() {
                 href="/dashboard"
                 className="flex items-center gap-2 p-1.5 pr-3 rounded-full bg-[#1a1a1a]/5 border border-[#1a1a1a]/8 hover:bg-[#1a1a1a]/10 transition-all cursor-pointer"
               >
-                <div className="w-6 h-6 rounded-full bg-[#1a1a1a]/60 flex items-center justify-center text-[10px] font-bold text-white">
-                  {user?.name ? user.name[0].toUpperCase() : "U"}
-                </div>
+                {user?.profile_picture ? (
+                  <img
+                    src={user.profile_picture}
+                    alt={user.name || "User"}
+                    className="w-6 h-6 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-[#1a1a1a]/60 flex items-center justify-center text-[10px] font-bold text-white">
+                    {user?.name ? user.name[0].toUpperCase() : "U"}
+                  </div>
+                )}
                 <span className="text-xs font-medium text-[#1a1a1a]/60 hidden sm:inline">
                   {user?.name}
                 </span>

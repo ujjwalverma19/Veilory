@@ -63,7 +63,11 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), index=True, nullable=False)
     email = Column(String(320), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=True)
+    supabase_user_id = Column(String(64), unique=True, index=True, nullable=True)
+    display_name = Column(String(255), nullable=True)
+    profile_picture = Column(String(1024), nullable=True)
+    auth_provider = Column(String(50), nullable=False, default="email", server_default="email")
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

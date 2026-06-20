@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, Experience, PrivacyLevel } from "@/types";
 import { SearchLimitModal } from "@/components/ui/SearchLimitModal";
 import { TokenStorage } from "@/lib/authStorage";
+import { supabase } from "@/lib/supabaseClient";
 import { 
   authService, 
   experienceService, 
@@ -18,6 +19,7 @@ interface AuthContextType {
   experiences: Experience[];
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
   addExperience: (title: string, content: string, tags: string[], privacy: PrivacyLevel) => Promise<Experience>;
   updateExperience: (id: string | number, title: string, content: string, tags: string[], privacy: PrivacyLevel) => Promise<Experience>;
@@ -92,9 +94,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize from backend (or fallback local storage for guest searches)
   useEffect(() => {
     const initAuth = async () => {
-      const token = TokenStorage.getToken();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || TokenStorage.getToken();
+      
       if (token) {
         try {
+          if (session?.access_token && token === session.access_token) {
+            await authService.oauth(session.access_token);
+          }
           const profile = await authService.getProfile();
           setUser(profile);
           setSearchCount(profile.daily_search_count || 0);
@@ -106,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (err) {
           console.warn("Session restore failed, clearing token", err);
           TokenStorage.clearToken();
+          await supabase.auth.signOut();
         }
       } else {
         // Load guest daily searches
@@ -127,6 +135,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initAuth();
+
+    // Listen for auth state changes on Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Supabase Auth Event:", event);
+      if (session?.access_token) {
+        const localToken = TokenStorage.getToken();
+        if (!localToken || localToken !== session.access_token) {
+          setIsLoading(true);
+          try {
+            await authService.oauth(session.access_token);
+            const profile = await authService.getProfile();
+            setUser(profile);
+            setSearchCount(profile.daily_search_count || 0);
+            setUserInterests(profile.interests || []);
+            await refreshExperiences();
+          } catch (err) {
+            console.error("OAuth token sync failed:", err);
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      } else if (event === "SIGNED_OUT") {
+        if (TokenStorage.getToken()) {
+          TokenStorage.clearToken();
+          setUser(null);
+          setSearchCount(0);
+          setUserInterests([]);
+          setPreviousSearches([]);
+          setViewedStoryIds([]);
+          refreshExperiences();
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Sync viewed stories list on login
@@ -246,9 +291,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      await authService.login(email, password);
-      await refreshUser();
-      await refreshExperiences();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        if (error.message.includes("Invalid login credentials") || error.status === 400) {
+          console.log("Supabase login failed, attempting backend migration login...");
+          const res = await authService.login(email, password);
+          if (res.access_token) {
+            await supabase.auth.setSession({
+              access_token: res.access_token,
+              refresh_token: "",
+            });
+            const profile = await authService.getProfile();
+            setUser(profile);
+            await refreshExperiences();
+            setIsLoading(false);
+            return true;
+          }
+        }
+        throw error;
+      }
+      
+      if (data.session?.access_token) {
+        await authService.oauth(data.session.access_token);
+        const profile = await authService.getProfile();
+        setUser(profile);
+        await refreshExperiences();
+      }
       setIsLoading(false);
       return true;
     } catch (err) {
@@ -260,11 +331,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      await authService.signup(name, email, password);
-      // Automatically log in after sign up
-      await authService.login(email, password);
-      await refreshUser();
-      await refreshExperiences();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+            full_name: name,
+          }
+        }
+      });
+      if (error) throw error;
+      if (data.session?.access_token) {
+        await authService.oauth(data.session.access_token);
+        const profile = await authService.getProfile();
+        setUser(profile);
+        await refreshExperiences();
+      }
       setIsLoading(false);
       return true;
     } catch (err) {
@@ -273,7 +356,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const loginWithGoogle = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setIsLoading(false);
+      throw err;
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     TokenStorage.clearToken();
     setUser(null);
     setSearchCount(0);
@@ -347,6 +447,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         experiences,
         login,
         signup,
+        loginWithGoogle,
         logout,
         addExperience,
         updateExperience,

@@ -175,6 +175,17 @@ export const authService = {
       method: "POST",
     });
   },
+
+  oauth: async (accessToken: string): Promise<{ access_token: string; token_type: string }> => {
+    const data = await apiFetch<{ access_token: string; token_type: string }>("/auth/oauth", {
+      method: "POST",
+      body: JSON.stringify({ access_token: accessToken }),
+    });
+
+    // Save token using our storage abstraction
+    TokenStorage.setToken(data.access_token);
+    return data;
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────

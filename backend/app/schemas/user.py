@@ -54,6 +54,9 @@ class UserResponse(BaseModel):
     daily_search_count: int = 0
     search_limit: int = 50
     interests: list[str] = []
+    display_name: Optional[str] = None
+    profile_picture: Optional[str] = None
+    auth_provider: str = "email"
 
     model_config = {"from_attributes": True}
 

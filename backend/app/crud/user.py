@@ -30,3 +30,33 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def get_user_by_supabase_id(db: Session, supabase_user_id: str) -> User | None:
+    """Fetch a user by their Supabase UUID."""
+    return db.query(User).filter(User.supabase_user_id == supabase_user_id).first()
+
+
+def create_oauth_user(
+    db: Session,
+    email: str,
+    name: str,
+    supabase_user_id: str,
+    display_name: str | None = None,
+    profile_picture: str | None = None,
+    auth_provider: str = "google",
+) -> User:
+    """Create a new user from verified Supabase OAuth or password signup."""
+    db_user = User(
+        name=name,
+        email=email.lower(),
+        supabase_user_id=supabase_user_id,
+        display_name=display_name or name,
+        profile_picture=profile_picture,
+        auth_provider=auth_provider,
+        password_hash=None,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user

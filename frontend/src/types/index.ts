@@ -13,6 +13,8 @@ export interface User {
   daily_search_count?: number;
   search_limit?: number;
   interests?: string[];
+  profile_picture?: string;
+  auth_provider?: string;
 }
 
 export interface Experience {
