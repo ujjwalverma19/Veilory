@@ -42,21 +42,36 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         """Construct the connection string. Fallback to SQLite for local development."""
         import os
+        db_url = os.getenv("DATABASE_URL")
+        
+        # Priority 1: If DATABASE_URL is present, always use PostgreSQL
+        if db_url:
+            # SQLAlchemy 1.4+ removed support for "postgres://", must be "postgresql://"
+            if db_url.startswith("postgres://"):
+                db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif db_url.startswith("postgresql://"):
+                db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            
+            # Enforce sslmode=require for secure production DB (e.g., Supabase) if not present
+            if "sslmode=" not in db_url:
+                separator = "&" if "?" in db_url else "?"
+                db_url = f"{db_url}{separator}sslmode=require"
+            return db_url
+
+        # Priority 2: Use local fallback databases based on USE_SQLITE flag
         if self.USE_SQLITE:
             if os.getenv("RENDER"):
                 return "sqlite:////app/chroma_db/veilory.db"
             return "sqlite:///veilory.db"
 
-        db_url = os.getenv("DATABASE_URL")
-        if db_url:
-            if db_url.startswith("postgres://"):
-                db_url = db_url.replace("postgres://", "postgresql://", 1)
-            return db_url
-
-        return (
-            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+        # Priority 3: Fallback PostgreSQL from config variables
+        uri = (
+            f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
+        if "sslmode=" not in uri:
+            uri = f"{uri}?sslmode=require"
+        return uri
 
 
 

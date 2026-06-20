@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: veilory_db
-      USE_SQLITE: false
+      DATABASE_URL: ${DATABASE_URL}
       CHROMA_DB_PATH: /app/chroma_db
     disks:
       - name: chroma-db
