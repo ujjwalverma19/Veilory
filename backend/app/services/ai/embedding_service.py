@@ -18,10 +18,15 @@ class EmbeddingService:
         
         # Try loading sentence-transformers
         try:
-            from sentence_transformers import SentenceTransformer
-            # We load the model lazily on first embedding request to speed up server start
-            self.use_fallback = False
-            logger.info("EmbeddingService initialized. sentence-transformers model ready.")
+            import os
+            if os.getenv("RENDER"):
+                self.use_fallback = True
+                logger.info("Running on Render: Forcing deterministic fallback in EmbeddingService to prevent memory OOM crashes.")
+            else:
+                from sentence_transformers import SentenceTransformer
+                # We load the model lazily on first embedding request to speed up server start
+                self.use_fallback = False
+                logger.info("EmbeddingService initialized. sentence-transformers model ready.")
         except Exception as e:
             logger.warning(f"Could not import sentence-transformers: {e}. Defaulting to deterministic fallback.")
             self.use_fallback = True
