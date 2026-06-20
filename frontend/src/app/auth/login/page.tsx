@@ -44,8 +44,10 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+    console.log(`[LOGIN_PAGE_STATE] Pathname: ${pathname}, isAuthLoading: ${isAuthLoading}, user exists: ${!!user}, User ID: ${user?.id || "none"}`);
     if (!isAuthLoading && user) {
-      console.log("[REDIRECT_DASHBOARD] Redirecting to /dashboard from login page because user is already authenticated.");
+      console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user is authenticated)`);
       router.push("/dashboard");
     }
   }, [user, isAuthLoading, router]);

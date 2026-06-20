@@ -9,12 +9,14 @@ export default function AuthCallback() {
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+    console.log(`[CALLBACK_PAGE_STATE] Pathname: ${pathname}, isLoading: ${isLoading}, user exists: ${!!user}, User ID: ${user?.id || "none"}`);
     if (!isLoading) {
       if (user) {
-        console.log("[REDIRECT_DASHBOARD] Redirecting to /dashboard from callback page");
+        console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user exists)`);
         router.push("/dashboard");
       } else {
-        console.log("[REDIRECT_LOGIN] Redirecting to /auth/login from callback page");
+        console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /auth/login (user is null)`);
         router.push("/auth/login");
       }
     }

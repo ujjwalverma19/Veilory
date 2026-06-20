@@ -113,27 +113,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize from backend (or fallback local storage for guest searches)
   useEffect(() => {
+    const oauthDetected = hasOAuthParams();
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    if (oauthDetected) {
+      console.log("[OAUTH_PARAMS_DETECTED] OAuth parameters detected in URL on mount. Setting up fallback timeout.");
+      // Fallback timeout to prevent permanent loading state
+      timeoutId = setTimeout(() => {
+        console.warn("[OAUTH_TIMEOUT] OAuth session detection timed out after 6 seconds.");
+        setIsLoading(false);
+      }, 6000);
+    }
+
     const initAuth = async () => {
-      console.log("[INIT_AUTH_START] initAuth starting...");
-      const oauthDetected = hasOAuthParams();
+      const currentPath = typeof window !== "undefined" ? window.location.pathname : "server";
+      console.log(`[INIT_AUTH_START] initAuth starting... Pathname: ${currentPath}`);
       if (oauthDetected) {
-        console.log("[OAUTH_PARAMS_DETECTED] OAuth params detected in URL during initAuth.");
+        console.log(`[OAUTH_PARAMS_DETECTED] OAuth params detected in URL during initAuth. Hash: ${typeof window !== "undefined" ? window.location.hash : ""}, Search: ${typeof window !== "undefined" ? window.location.search : ""}`);
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+      console.log(`[SESSION_RESULT] getSession() returned: session exists = ${!!session}, User ID = ${session?.user?.id || "none"}`);
       const token = session?.access_token || TokenStorage.getToken();
+      console.log(`[TOKEN_STATUS] resolved token exists = ${!!token}, source = ${session?.access_token ? "Supabase session" : "TokenStorage"}`);
       
-      if (session) {
-        console.log("[SESSION_FOUND] Session found in getSession(). User ID:", session.user?.id);
-      }
-
       if (token) {
         try {
           if (session?.access_token) {
+            console.log("[OAUTH_SYNC_START] Syncing token with backend...");
             lastSyncedTokenRef.current = session.access_token;
             await authService.oauth(session.access_token);
           }
+          console.log("[GET_PROFILE_START] Fetching profile...");
           const profile = await authService.getProfile();
+          console.log(`[GET_PROFILE_SUCCESS] Profile fetched successfully: ID = ${profile?.id}, Email = ${profile?.email}`);
           setUser(profile);
           setSearchCount(profile.daily_search_count || 0);
           setUserInterests(profile.interests || []);
@@ -142,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const history = await searchService.getHistory();
           setPreviousSearches(history.map(h => h.query));
         } catch (err) {
-          console.warn("Session restore failed, clearing token", err);
+          console.warn("[SESSION_RESTORE_FAILED] Session restore failed, clearing token", err);
           TokenStorage.clearToken();
           await supabase.auth.signOut();
         }
@@ -164,6 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await refreshExperiences();
 
       if (!oauthDetected) {
+        console.log("[SET_LOADING] initAuth finished and no OAuth detected. Setting isLoading = false");
         setIsLoading(false);
       }
     };
@@ -172,19 +186,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes on Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-      console.log("Supabase Auth Event:", event);
+      console.log(`[AUTH_STATE_CHANGE] Event: ${event}, Session exists: ${!!session}, User ID: ${session?.user?.id || "none"}`);
       if (event === "SIGNED_IN") {
         console.log("[SIGNED_IN_EVENT] Supabase SIGNED_IN event triggered.");
       }
 
       if (session?.access_token) {
         if (lastSyncedTokenRef.current !== session.access_token) {
-          console.log("Syncing access token to backend since it differs from lastSyncedTokenRef.");
+          console.log(`[SYNC_CHECK] Token differs from lastSyncedTokenRef (lastSynced = ${lastSyncedTokenRef.current ? "exists" : "null"}). Syncing token to backend.`);
           lastSyncedTokenRef.current = session.access_token;
           setIsLoading(true);
           try {
             await authService.oauth(session.access_token);
+            console.log("[GET_PROFILE_START] Fetching profile in onAuthStateChange...");
             const profile = await authService.getProfile();
+            console.log(`[GET_PROFILE_SUCCESS] Profile fetched successfully in onAuthStateChange: ID = ${profile?.id}, Email = ${profile?.email}`);
             setUser(profile);
             setSearchCount(profile.daily_search_count || 0);
             setUserInterests(profile.interests || []);
@@ -192,20 +208,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (err) {
             console.error("OAuth token sync failed:", err);
           } finally {
+            console.log("[SET_LOADING] onAuthStateChange sync complete. Setting isLoading = false");
             setIsLoading(false);
           }
         } else {
-          console.log("Token already synced, skipping duplicate API calls.");
+          console.log("[SYNC_CHECK] Token already synced (matches lastSyncedTokenRef). Setting isLoading = false");
           setIsLoading(false);
         }
       } else {
-        if (hasOAuthParams()) {
-          console.log("No session available but OAuth params exist in URL; ending loading state.");
+        const urlHasError = typeof window !== "undefined" && (
+          window.location.hash.includes("error") ||
+          window.location.search.includes("error")
+        );
+        if (urlHasError) {
+          console.log("[OAUTH_ERROR] OAuth error detected in URL. Setting isLoading = false");
           setIsLoading(false);
         }
       }
 
       if (event === "SIGNED_OUT") {
+        console.log("[SIGNED_OUT_EVENT] Supabase SIGNED_OUT event triggered. Clearing session.");
         lastSyncedTokenRef.current = null;
         if (TokenStorage.getToken()) {
           TokenStorage.clearToken();
@@ -221,6 +243,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
+      if (timeoutId) {
+        console.log("Cleaning up OAuth fallback timeout.");
+        clearTimeout(timeoutId);
+      }
     };
   }, []);
 

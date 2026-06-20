@@ -52,10 +52,13 @@ export default function Dashboard() {
   const [recFilterEmotion, setRecFilterEmotion] = useState<string>("all");
 
   useEffect(() => {
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+    console.log(`[DASHBOARD_PAGE_STATE] Pathname: ${pathname}, isLoading: ${isLoading}, isAuthenticated: ${isAuthenticated}, user exists: ${!!user}`);
     if (!isLoading && !isAuthenticated) {
+      console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /auth/login (not authenticated)`);
       router.push("/auth/login");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, user]);
 
   // Fetch my experiences
   const fetchMyExperiences = async () => {
