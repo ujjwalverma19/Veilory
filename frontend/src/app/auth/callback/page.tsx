@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AuthCallback() {
@@ -9,17 +10,29 @@ export default function AuthCallback() {
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-    console.log(`[CALLBACK_PAGE_STATE] Pathname: ${pathname}, isLoading: ${isLoading}, user exists: ${!!user}, User ID: ${user?.id || "none"}`);
-    if (!isLoading) {
-      if (user) {
-        console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user exists)`);
+    const handleRedirect = async () => {
+      const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+      console.log(`[CALLBACK_PAGE_STATE] Pathname: ${pathname}, isLoading: ${isLoading}, user exists: ${!!user}, User ID: ${user?.id || "none"}`);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (valid Supabase session found)`);
         router.push("/dashboard");
-      } else {
-        console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /auth/login (user is null)`);
-        router.push("/auth/login");
+        return;
       }
-    }
+
+      if (!isLoading) {
+        if (user) {
+          console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user exists)`);
+          router.push("/dashboard");
+        } else {
+          console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /auth/login (user is null)`);
+          router.push("/auth/login");
+        }
+      }
+    };
+
+    handleRedirect();
   }, [user, isLoading, router]);
 
   return (

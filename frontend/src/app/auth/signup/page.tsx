@@ -47,11 +47,11 @@ export default function SignupPage() {
   useEffect(() => {
     const pathname = typeof window !== "undefined" ? window.location.pathname : "";
     console.log(`[SIGNUP_PAGE_STATE] Pathname: ${pathname}, isAuthLoading: ${isAuthLoading}, user exists: ${!!user}, User ID: ${user?.id || "none"}`);
-    if (!isAuthLoading && user) {
-      console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user is authenticated)`);
+    if (user) {
+      console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user exists)`);
       router.push("/dashboard");
     }
-  }, [user, isAuthLoading, router]);
+  }, [user, router]);
 
   const handleGoogleSignup = async () => {
     console.log("Google button clicked");
