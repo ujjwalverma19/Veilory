@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
 import { ArrowRight, Mail, Lock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { OAuthButton } from "@/components/ui/OAuthButton";
@@ -44,13 +45,17 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-    console.log(`[LOGIN_PAGE_STATE] Pathname: ${pathname}, isAuthLoading: ${isAuthLoading}, user exists: ${!!user}, User ID: ${user?.id || "none"}`);
-    if (user) {
-      console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user exists)`);
-      router.push("/dashboard");
-    }
-  }, [user, router]);
+    const checkRedirect = async () => {
+      const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log(`[LOGIN_PAGE_STATE] Pathname: ${pathname}, isAuthLoading: ${isAuthLoading}, user exists: ${!!user}, session exists: ${!!session}`);
+      if (user || session) {
+        console.log(`[REDIRECT_DECISION] Pathname: ${pathname} -> Redirecting to /dashboard (user exists or session found)`);
+        router.push("/dashboard");
+      }
+    };
+    checkRedirect();
+  }, [user, router, isAuthLoading]);
 
   const handleGoogleLogin = async () => {
     console.log("Google button clicked");

@@ -155,9 +155,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const history = await searchService.getHistory();
           setPreviousSearches(history.map(h => h.query));
         } catch (err) {
-          console.warn("[SESSION_RESTORE_FAILED] Session restore failed, clearing token", err);
-          TokenStorage.clearToken();
-          await supabase.auth.signOut();
+          console.warn("[SESSION_RESTORE_FAILED] Session restore failed, falling back to client-side profile", err);
+          if (session?.user) {
+            const fallbackProfile: User = {
+              id: session.user.id,
+              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Google User",
+              email: session.user.email || "",
+              created_at: session.user.created_at || new Date().toISOString(),
+              tier: "free",
+              daily_search_count: 0,
+              search_limit: 50,
+              interests: [],
+              auth_provider: session.user.app_metadata?.provider || "google",
+            };
+            setUser(fallbackProfile);
+          } else {
+            TokenStorage.clearToken();
+            await supabase.auth.signOut();
+          }
         }
       } else {
         // Load guest daily searches
@@ -206,7 +221,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUserInterests(profile.interests || []);
             await refreshExperiences();
           } catch (err) {
-            console.error("OAuth token sync failed:", err);
+            console.error("OAuth token sync failed; using fallback client-side user profile:", err);
+            if (session?.user) {
+              const fallbackProfile: User = {
+                id: session.user.id,
+                name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Google User",
+                email: session.user.email || "",
+                created_at: session.user.created_at || new Date().toISOString(),
+                tier: "free",
+                daily_search_count: 0,
+                search_limit: 50,
+                interests: [],
+                auth_provider: session.user.app_metadata?.provider || "google",
+              };
+              setUser(fallbackProfile);
+            }
           } finally {
             console.log("[SET_LOADING] onAuthStateChange sync complete. Setting isLoading = false");
             setIsLoading(false);
